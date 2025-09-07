@@ -1,7 +1,7 @@
 moodle-enrol_semco
 ==================
 
-[![Moodle Plugin CI](https://github.com/lernlink/moodle-enrol_semco/actions/workflows/moodle-plugin-ci.yml/badge.svg?branch=main)](https://github.com/lernlink/moodle-enrol_semco/actions?query=workflow%3A%22Moodle+Plugin+CI%22+branch%3Amain)
+[![Moodle Plugin CI](https://github.com/lernlink/moodle-enrol_semco/actions/workflows/moodle-plugin-ci.yml/badge.svg?branch=MOODLE_500_STABLE)](https://github.com/lernlink/moodle-enrol_semco/actions?query=workflow%3A%22Moodle+Plugin+CI%22+branch%3AMOODLE_500_STABLE)
 
 Moodle enrolment plugin which allows the SEMCO seminar management system to enrol and manage users in Moodle courses
 
