@@ -40,8 +40,8 @@ use moodle_url;
 defined('MOODLE_INTERNAL') || die;
 
 // Require libraries.
-require_once($CFG->libdir.'/enrollib.php');
-require_once($CFG->dirroot.'/grade/querylib.php');
+require_once($CFG->libdir . '/enrollib.php');
+require_once($CFG->dirroot . '/grade/querylib.php');
 
 /**
  * Enrolment method "SEMCO" - External API
@@ -67,39 +67,57 @@ class external extends external_api {
      */
     public static function enrol_user_parameters() {
         return new external_function_parameters(
-                [
-                        'userid' =>
-                                new external_value(PARAM_INT,
-                                        'The Moodle user ID that is going to be enrolled.',
-                                        VALUE_REQUIRED),
-                        'courseid' =>
-                                new external_value(PARAM_INT,
-                                        'The Moodle course ID to enrol the user into.',
-                                        VALUE_REQUIRED),
-                        'semcobookingid' =>
-                                new external_value(PARAM_TEXT,
-                                        'The SEMCO booking ID which is the basis for this Moodle enrolment.',
-                                        VALUE_REQUIRED),
-                        'timestart' =>
-                                new external_value(PARAM_INT,
-                                        'The timestamp when the enrolment starts (or set to 0 to omit the timestart date)'.
-                                                ' [optional].',
-                                        VALUE_DEFAULT, 0),
-                        'timeend' =>
-                                new external_value(PARAM_INT,
-                                        'The timestamp when the enrolment ends (or set to 0 to omit the timeend date) [optional].',
-                                        VALUE_DEFAULT, 0),
-                        'suspend' =>
-                                new external_value(PARAM_BOOL,
-                                        'The fact if the enrolment is suspended or not (0: not suspended, 1: suspended)'.
-                                                ' [optional].',
-                                        VALUE_DEFAULT, false),
-                        'requirerecompletion' =>
-                                new external_value(PARAM_BOOL,
-                                        'The fact if local_recompletion is required to be enabled in the course or not'.
-                                                ' (0: not required, 1: required) [optional].',
-                                        VALUE_DEFAULT, false),
-                ]
+            [
+                'userid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle user ID that is going to be enrolled.',
+                        VALUE_REQUIRED
+                    ),
+                'courseid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle course ID to enrol the user into.',
+                        VALUE_REQUIRED
+                    ),
+                'semcobookingid' =>
+                    new external_value(
+                        PARAM_TEXT,
+                        'The SEMCO booking ID which is the basis for this Moodle enrolment.',
+                        VALUE_REQUIRED
+                    ),
+                'timestart' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The timestamp when the enrolment starts (or set to 0 to omit the timestart date)' .
+                                    ' [optional].',
+                        VALUE_DEFAULT,
+                        0
+                    ),
+                'timeend' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The timestamp when the enrolment ends (or set to 0 to omit the timeend date) [optional].',
+                        VALUE_DEFAULT,
+                        0
+                    ),
+                'suspend' =>
+                    new external_value(
+                        PARAM_BOOL,
+                        'The fact if the enrolment is suspended or not (0: not suspended, 1: suspended)' .
+                                    ' [optional].',
+                        VALUE_DEFAULT,
+                        false
+                    ),
+                'requirerecompletion' =>
+                    new external_value(
+                        PARAM_BOOL,
+                        'The fact if local_recompletion is required to be enabled in the course or not' .
+                                    ' (0: not required, 1: required) [optional].',
+                        VALUE_DEFAULT,
+                        false
+                    ),
+            ]
         );
     }
 
@@ -119,12 +137,19 @@ class external extends external_api {
      * @return array The webservice's return array
      * @throws moodle_exception
      */
-    public static function enrol_user($userid, $courseid, $semcobookingid, $timestart = null, $timeend = null,
-            $suspend = null, $requirerecompletion = null) {
+    public static function enrol_user(
+        $userid,
+        $courseid,
+        $semcobookingid,
+        $timestart = null,
+        $timeend = null,
+        $suspend = null,
+        $requirerecompletion = null
+    ) {
         global $DB, $CFG;
 
         // Require enrolment library.
-        require_once($CFG->libdir.'/enrollib.php');
+        require_once($CFG->libdir . '/enrollib.php');
 
         // Validate given parameters.
         $arrayparams = [
@@ -214,8 +239,12 @@ class external extends external_api {
         }
 
         // Throw an exception if there is already an enrolment instance which overlaps with the given enrolment period.
-        $overlapexists = enrol_semco_detect_enrolment_overlap($params['courseid'], $params['userid'], $params['timestart'],
-                $params['timeend']);
+        $overlapexists = enrol_semco_detect_enrolment_overlap(
+            $params['courseid'],
+            $params['userid'],
+            $params['timestart'],
+            $params['timeend']
+        );
         if ($overlapexists == true) {
             throw new moodle_exception('bookingoverlap', 'enrol_semco');
         }
@@ -228,11 +257,15 @@ class external extends external_api {
             }
 
             // Require local_recompletion plugin library.
-            require_once($CFG->dirroot.'/local/recompletion/locallib.php');
+            require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
             // Get the recompletion config for this course.
-            $recompletionconfig = (object) $DB->get_records_menu('local_recompletion_config',
-                ['course' => $params['courseid']], '', 'name, value');
+            $recompletionconfig = (object) $DB->get_records_menu(
+                'local_recompletion_config',
+                ['course' => $params['courseid']],
+                '',
+                'name, value'
+            );
 
             // Throw an exception if recompletion is not enabled at all.
             if (empty($recompletionconfig->recompletiontype)) {
@@ -291,17 +324,18 @@ class external extends external_api {
      */
     public static function enrol_user_returns() {
         return new external_single_structure(
-                [
-                        'enrolid' =>
-                                new external_value(PARAM_INT, 'The Moodle enrolment ID of the created enrolment.'),
-                        'userid' =>
-                                new external_value(PARAM_INT, 'The Moodle user ID of the created enrolment.'),
-                        'courseid' =>
-                                new external_value(PARAM_INT, 'The Moodle course ID of the created enrolment.'),
-                        'semcobookingid' =>
-                                new external_value(PARAM_TEXT, 'The SEMCO booking ID of the created enrolment.'),
-                        'warnings' => new external_warnings(),
-                ]
+            [
+                'enrolid' =>
+                    new external_value(PARAM_INT, 'The Moodle enrolment ID of the created enrolment.'),
+                'userid' =>
+                    new external_value(PARAM_INT, 'The Moodle user ID of the created enrolment.'),
+                'courseid' =>
+                    new external_value(PARAM_INT, 'The Moodle course ID of the created enrolment.'),
+                'semcobookingid' =>
+                    new external_value(PARAM_TEXT, 'The SEMCO booking ID of the created enrolment.'),
+                'warnings' =>
+                    new external_warnings(),
+            ]
         );
     }
 
@@ -312,12 +346,14 @@ class external extends external_api {
      */
     public static function unenrol_user_parameters() {
         return new external_function_parameters(
-                [
-                        'enrolid' =>
-                                new external_value(PARAM_INT,
-                                    'The Moodle enrolment ID that should be unenrolled.',
-                                    VALUE_REQUIRED),
-                ]
+            [
+                'enrolid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle enrolment ID that should be unenrolled.',
+                        VALUE_REQUIRED
+                    ),
+            ]
         );
     }
 
@@ -334,7 +370,7 @@ class external extends external_api {
         global $CFG, $DB;
 
         // Require enrolment library.
-        require_once($CFG->libdir.'/enrollib.php');
+        require_once($CFG->libdir . '/enrollib.php');
 
         // Validate given parameters.
         $arrayparams = [
@@ -410,10 +446,10 @@ class external extends external_api {
      */
     public static function unenrol_user_returns() {
         return new external_single_structure(
-                [
-                        'result' => new external_value(PARAM_BOOL, 'The unenrolment result.'),
-                        'warnings' => new external_warnings(),
-                ]
+            [
+                'result' => new external_value(PARAM_BOOL, 'The unenrolment result.'),
+                'warnings' => new external_warnings(),
+            ]
         );
     }
 
@@ -424,31 +460,45 @@ class external extends external_api {
      */
     public static function edit_enrolment_parameters() {
         return new external_function_parameters(
-                [
-                        'enrolid' =>
-                                new external_value(PARAM_INT,
-                                        'The Moodle enrolment ID that should be edited.',
-                                        VALUE_REQUIRED),
-                        'semcobookingid' =>
-                                new external_value(PARAM_TEXT,
-                                        'The SEMCO booking ID which is the basis for this Moodle enrolment [optional].',
-                                        VALUE_DEFAULT, null),
-                        'timestart' =>
-                                new external_value(PARAM_INT,
-                                        'The timestamp when the enrolment starts (alternatively set to 0 to remove the timestart'.
-                                                ' date) [optional].',
-                                        VALUE_DEFAULT, null),
-                        'timeend' =>
-                                new external_value(PARAM_INT,
-                                        'The timestamp when the enrolment ends (alternatively set to 0 to remove the timeend'.
-                                                ' date) [optional].',
-                                        VALUE_DEFAULT, null),
-                        'suspend' =>
-                                new external_value(PARAM_BOOL,
-                                        'The fact if the enrolment is suspended or not (0: not suspended, 1: suspended)'.
-                                                ' [optional].',
-                                        VALUE_DEFAULT, null),
-                ]
+            [
+                'enrolid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle enrolment ID that should be edited.',
+                        VALUE_REQUIRED
+                    ),
+                'semcobookingid' =>
+                    new external_value(
+                        PARAM_TEXT,
+                        'The SEMCO booking ID which is the basis for this Moodle enrolment [optional].',
+                        VALUE_DEFAULT,
+                        null
+                    ),
+                'timestart' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The timestamp when the enrolment starts (alternatively set to 0 to remove the timestart' .
+                                    ' date) [optional].',
+                        VALUE_DEFAULT,
+                        null
+                    ),
+                'timeend' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The timestamp when the enrolment ends (alternatively set to 0 to remove the timeend' .
+                                    ' date) [optional].',
+                        VALUE_DEFAULT,
+                        null
+                    ),
+                'suspend' =>
+                    new external_value(
+                        PARAM_BOOL,
+                        'The fact if the enrolment is suspended or not (0: not suspended, 1: suspended)' .
+                                    ' [optional].',
+                        VALUE_DEFAULT,
+                        null
+                    ),
+            ]
         );
     }
 
@@ -467,7 +517,7 @@ class external extends external_api {
         global $CFG, $DB;
 
         // Require enrolment library.
-        require_once($CFG->libdir.'/enrollib.php');
+        require_once($CFG->libdir . '/enrollib.php');
 
         // Validate given parameters.
         $arrayparams = [
@@ -550,8 +600,10 @@ class external extends external_api {
 
         // Throw an exception if the timestart parameter and the timeend parameter was given,
         // but timestart is greater than timeend.
-        if ($params['timestart'] !== null && $params['timeend'] !== null &&
-                $params['timestart'] > 0 && $params['timeend'] > 0 && $params['timestart'] > $params['timeend']) {
+        if (
+            $params['timestart'] !== null && $params['timeend'] !== null &&
+                $params['timestart'] > 0 && $params['timeend'] > 0 && $params['timestart'] > $params['timeend']
+        ) {
             throw new moodle_exception('timestartendorder', 'enrol_semco');
         }
 
@@ -571,8 +623,13 @@ class external extends external_api {
                 // Get the original timeend from the enrolment instance.
                 $timeendforoverlap = (int) $userinstance->timeend;
             }
-            $overlapexists = enrol_semco_detect_enrolment_overlap($instance->courseid, $userinstance->userid, $timestartforoverlap,
-                    $timeendforoverlap, $instance->id);
+            $overlapexists = enrol_semco_detect_enrolment_overlap(
+                $instance->courseid,
+                $userinstance->userid,
+                $timestartforoverlap,
+                $timeendforoverlap,
+                $instance->id
+            );
             if ($overlapexists == true) {
                 throw new moodle_exception('bookingoverlap', 'enrol_semco');
             }
@@ -610,10 +667,10 @@ class external extends external_api {
      */
     public static function edit_enrolment_returns() {
         return new external_single_structure(
-                [
-                        'result' => new external_value(PARAM_BOOL, 'The editing result.'),
-                        'warnings' => new external_warnings(),
-                ]
+            [
+                'result' => new external_value(PARAM_BOOL, 'The editing result.'),
+                'warnings' => new external_warnings(),
+            ]
         );
     }
 
@@ -624,12 +681,14 @@ class external extends external_api {
      */
     public static function get_enrolments_parameters() {
         return new external_function_parameters(
-                [
-                        'courseid' =>
-                                new external_value(PARAM_INT,
-                                        'The Moodle course ID of which the enrolments should be returned.',
-                                        VALUE_REQUIRED),
-                ]
+            [
+                'courseid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle course ID of which the enrolments should be returned.',
+                        VALUE_REQUIRED
+                    ),
+            ]
         );
     }
 
@@ -644,7 +703,7 @@ class external extends external_api {
         global $DB, $CFG;
 
         // Require enrolment library.
-        require_once($CFG->libdir.'/enrollib.php');
+        require_once($CFG->libdir . '/enrollib.php');
 
         // Validate given parameters.
         $arrayparams = [
@@ -701,20 +760,20 @@ class external extends external_api {
      */
     public static function get_enrolments_returns() {
         return new external_multiple_structure(
-                new external_single_structure(
-                        [
-                                'enrolid' => new external_value(PARAM_INT, 'The Moodle enrolment ID of the enrolment.'),
-                                'userid' => new external_value(PARAM_INT, 'The Moodle user ID of the enrolment.'),
-                                'semcobookingid' => new external_value(PARAM_TEXT, 'The SEMCO booking ID of the enrolment.'),
-                                'timestart' => new external_value(PARAM_INT, 'The timestamp when the enrolment starts (or 0 if'.
-                                        ' there isn\'t any timestart date).'),
-                                'timeend' => new external_value(PARAM_INT, 'The timestamp when the enrolment ends (or 0 if there'.
-                                        ' isn\'t any timeend date).'),
-                                'suspend' => new external_value(PARAM_BOOL, 'The fact if the enrolment is suspended or not (0:'.
-                                        ' not suspended, 1: suspended).'),
+            new external_single_structure(
+                [
+                    'enrolid' => new external_value(PARAM_INT, 'The Moodle enrolment ID of the enrolment.'),
+                    'userid' => new external_value(PARAM_INT, 'The Moodle user ID of the enrolment.'),
+                    'semcobookingid' => new external_value(PARAM_TEXT, 'The SEMCO booking ID of the enrolment.'),
+                    'timestart' => new external_value(PARAM_INT, 'The timestamp when the enrolment starts (or 0 if' .
+                            ' there isn\'t any timestart date).'),
+                    'timeend' => new external_value(PARAM_INT, 'The timestamp when the enrolment ends (or 0 if there' .
+                            ' isn\'t any timeend date).'),
+                    'suspend' => new external_value(PARAM_BOOL, 'The fact if the enrolment is suspended or not (0:' .
+                            ' not suspended, 1: suspended).'),
 
-                        ]
-                )
+                ]
+            )
         );
     }
 
@@ -725,14 +784,16 @@ class external extends external_api {
      */
     public static function get_course_completions_parameters() {
         return new external_function_parameters(
-                [
-                        'enrolmentids' =>
-                                new external_multiple_structure(
-                                        new external_value(PARAM_INT,
-                                                'The Moodle enrolment ID for which the course completion should be returned.',
-                                                VALUE_REQUIRED),
-                                ),
-                ]
+            [
+                'enrolmentids' =>
+                    new external_multiple_structure(
+                        new external_value(
+                            PARAM_INT,
+                            'The Moodle enrolment ID for which the course completion should be returned.',
+                            VALUE_REQUIRED
+                        ),
+                    ),
+            ]
         );
     }
 
@@ -759,12 +820,12 @@ class external extends external_api {
         }
 
         // Require enrolment library.
-        require_once($CFG->libdir.'/enrollib.php');
+        require_once($CFG->libdir . '/enrollib.php');
 
         // Require grade libraries.
-        require_once($CFG->libdir.'/gradelib.php');
-        require_once($CFG->dirroot.'/grade/lib.php');
-        require_once($CFG->dirroot.'/grade/report/overview/lib.php');
+        require_once($CFG->libdir . '/gradelib.php');
+        require_once($CFG->dirroot . '/grade/lib.php');
+        require_once($CFG->dirroot . '/grade/report/overview/lib.php');
 
         // Validate given parameters.
         $arrayparams = [
@@ -774,8 +835,12 @@ class external extends external_api {
 
         // Throw an exception if the caller passed too many enrolment IDs (for performance reasons).
         if (count($params['enrolmentids']) > ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST) {
-            throw new moodle_exception('getcoursecompletionsmaxrequest', 'enrol_semco', '',
-                    ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST);
+            throw new moodle_exception(
+                'getcoursecompletionsmaxrequest',
+                'enrol_semco',
+                '',
+                ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST
+            );
         }
 
         // Retrieve the SEMCO enrolment plugin.
@@ -840,8 +905,11 @@ class external extends external_api {
             // If the course can be completed.
             if ($canbecompleted == true) {
                 // Get the course completion time for this enrolment instance from the DB.
-                $timecompleted = $DB->get_field('course_completions', 'timecompleted',
-                        ['userid' => $userinstance->userid, 'course' => $instance->courseid]);
+                $timecompleted = $DB->get_field(
+                    'course_completions',
+                    'timecompleted',
+                    ['userid' => $userinstance->userid, 'course' => $instance->courseid]
+                );
 
                 // If a course completion time could be retrieved.
                 if ($timecompleted != false) {
@@ -967,38 +1035,38 @@ class external extends external_api {
      */
     public static function get_course_completions_returns() {
         return new external_multiple_structure(
-                new external_single_structure(
-                        [
-                                'enrolid' => new external_value(PARAM_INT, 'The Moodle enrolment ID of the enrolment.'),
-                                'userid' => new external_value(PARAM_INT, 'The Moodle user ID of the enrolment.'),
-                                'semcobookingid' => new external_value(PARAM_TEXT, 'The SEMCO booking ID of the enrolment.'),
-                                'canbecompleted' => new external_value(PARAM_BOOL, 'The fact if the course can be completed,'.
-                                        ' i.e. if course completion has been enabled (0: not enabled, 1: enabled).'),
-                                'completed' => new external_value(PARAM_BOOL, 'The fact if the user has completed'.
-                                        ' the course or not (0: not completed, 1: completed).'),
-                                'timecompleted' => new external_value(PARAM_INT, 'The timestamp when the course was completed'.
-                                        ' (or null if the course is not completed yet).'),
-                                'finalgrade' => new external_value(PARAM_RAW, 'The (formatted) final grade which the user got'.
-                                        ' after he has completed the course (or null if the course is not completed yet or'.
-                                        ' the user did not receive a grade in the course).'),
-                                'finalgraderaw' => new external_value(PARAM_RAW, 'The (raw) final grade which the user got'.
-                                        ' after he has completed the course (or null if the course is not completed yet or'.
-                                        ' the user did not receive a grade in the course).'),
-                                'grademinraw' => new external_value(PARAM_RAW, 'The (raw) min grade which is the lower limit'.
-                                        ' for the user\'s grade (or null if the course is not completed yet or'.
-                                        ' the user did not receive a grade in the course).'),
-                                'grademaxraw' => new external_value(PARAM_RAW, 'The (raw) max grade which is the upper limit'.
-                                        ' for the user\'s grade (or null if the course is not completed yet or'.
-                                        ' the user did not receive a grade in the course).'),
-                                'gradepassraw' => new external_value(PARAM_RAW, 'The (raw) grade which is required'.
-                                        ' for the course to be assessed as passed (or null if the course is not completed yet or'.
-                                        ' the user did not receive a grade in the course).'),
-                                'passed' => new external_value(PARAM_BOOL, 'The fact if the user has passed'.
-                                        ' the course or not, i.e. if his finalgrade was greater or equal to the course\'s'.
-                                        ' pass grade (0: not passed, 1: passed, null if the course is not completed yet'.
-                                        ' or if the course\'s passing grade is zero).'),
-                        ]
-                )
+            new external_single_structure(
+                [
+                    'enrolid' => new external_value(PARAM_INT, 'The Moodle enrolment ID of the enrolment.'),
+                    'userid' => new external_value(PARAM_INT, 'The Moodle user ID of the enrolment.'),
+                    'semcobookingid' => new external_value(PARAM_TEXT, 'The SEMCO booking ID of the enrolment.'),
+                    'canbecompleted' => new external_value(PARAM_BOOL, 'The fact if the course can be completed,' .
+                            ' i.e. if course completion has been enabled (0: not enabled, 1: enabled).'),
+                    'completed' => new external_value(PARAM_BOOL, 'The fact if the user has completed' .
+                            ' the course or not (0: not completed, 1: completed).'),
+                    'timecompleted' => new external_value(PARAM_INT, 'The timestamp when the course was completed' .
+                            ' (or null if the course is not completed yet).'),
+                    'finalgrade' => new external_value(PARAM_RAW, 'The (formatted) final grade which the user got' .
+                            ' after he has completed the course (or null if the course is not completed yet or' .
+                            ' the user did not receive a grade in the course).'),
+                    'finalgraderaw' => new external_value(PARAM_RAW, 'The (raw) final grade which the user got' .
+                            ' after he has completed the course (or null if the course is not completed yet or' .
+                            ' the user did not receive a grade in the course).'),
+                    'grademinraw' => new external_value(PARAM_RAW, 'The (raw) min grade which is the lower limit' .
+                            ' for the user\'s grade (or null if the course is not completed yet or' .
+                            ' the user did not receive a grade in the course).'),
+                    'grademaxraw' => new external_value(PARAM_RAW, 'The (raw) max grade which is the upper limit' .
+                            ' for the user\'s grade (or null if the course is not completed yet or' .
+                            ' the user did not receive a grade in the course).'),
+                    'gradepassraw' => new external_value(PARAM_RAW, 'The (raw) grade which is required' .
+                            ' for the course to be assessed as passed (or null if the course is not completed yet or' .
+                            ' the user did not receive a grade in the course).'),
+                    'passed' => new external_value(PARAM_BOOL, 'The fact if the user has passed' .
+                            ' the course or not, i.e. if his finalgrade was greater or equal to the course\'s' .
+                            ' pass grade (0: not passed, 1: passed, null if the course is not completed yet' .
+                            ' or if the course\'s passing grade is zero).'),
+                ]
+            )
         );
     }
 
@@ -1009,12 +1077,14 @@ class external extends external_api {
      */
     public static function reset_course_completion_parameters() {
         return new external_function_parameters(
-                [
-                        'enrolid' =>
-                                new external_value(PARAM_INT,
-                                        'The Moodle enrolment ID for which the course completion should be reset.',
-                                        VALUE_REQUIRED),
-                ]
+            [
+                'enrolid' =>
+                    new external_value(
+                        PARAM_INT,
+                        'The Moodle enrolment ID for which the course completion should be reset.',
+                        VALUE_REQUIRED
+                    ),
+            ]
         );
     }
 
@@ -1057,7 +1127,7 @@ class external extends external_api {
         }
 
         // Require local_recompletion plugin library.
-        require_once($CFG->dirroot.'/local/recompletion/locallib.php');
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
         // Get the user enrolment associated to the given enrolment ID from the database,
         // throw an exception if it does not exist.
@@ -1087,8 +1157,12 @@ class external extends external_api {
         }
 
         // Get the recompletion config for this course.
-        $recompletionconfig = (object) $DB->get_records_menu('local_recompletion_config',
-                ['course' => $instance->courseid], '', 'name, value');
+        $recompletionconfig = (object) $DB->get_records_menu(
+            'local_recompletion_config',
+            ['course' => $instance->courseid],
+            '',
+            'name, value'
+        );
 
         // Throw an exception if recompletion is not enabled at all.
         if (empty($recompletionconfig->recompletiontype)) {
@@ -1155,11 +1229,11 @@ class external extends external_api {
      */
     public static function reset_course_completion_returns() {
         return new external_single_structure(
-                [
-                        'result' => new external_value(PARAM_BOOL, 'The course completion reset result'.
-                                ' (1: reset successful, 0: reset not successful, please check the warnings).'),
-                        'warnings' => new external_warnings(),
-                ]
+            [
+                'result' => new external_value(PARAM_BOOL, 'The course completion reset result' .
+                        ' (1: reset successful, 0: reset not successful, please check the warnings).'),
+                'warnings' => new external_warnings(),
+            ]
         );
     }
 }

@@ -33,7 +33,6 @@ use core\task\scheduled_task;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class cleanup_orphaned_enrolment_instances extends scheduled_task {
-
     /**
      * Return localised task name.
      *
@@ -50,7 +49,7 @@ class cleanup_orphaned_enrolment_instances extends scheduled_task {
         global $DB;
 
         // Get any enrolment instances of type 'semco' from mdl_enrol which do not have a counterpart in mdl_user_enrolments.
-        mtrace('Getting any enrolment instances of type \'semco\' from mdl_enrol which do not have a counterpart in '.
+        mtrace('Getting any enrolment instances of type \'semco\' from mdl_enrol which do not have a counterpart in ' .
                 'mdl_user_enrolments.');
         $sql = 'SELECT *
                 FROM {enrol} e
@@ -66,7 +65,7 @@ class cleanup_orphaned_enrolment_instances extends scheduled_task {
         // If there is at least one enrolment instance.
         if ($orphanedenrolments != false) {
             // Trace.
-            mtrace(count($orphanedenrolments).' orphaned enrolment instances found.');
+            mtrace(count($orphanedenrolments) . ' orphaned enrolment instances found.');
 
             // Retrieve the SEMCO enrolment plugin.
             $enrol = enrol_get_plugin('semco');
@@ -74,7 +73,7 @@ class cleanup_orphaned_enrolment_instances extends scheduled_task {
             // Iterate over the instances.
             foreach ($orphanedenrolments as $oe) {
                 // Trace.
-                mtrace('... Removing the enrolment instance '.$oe->id.' from course '.$oe->courseid.'.');
+                mtrace('... Removing the enrolment instance ' . $oe->id . ' from course ' . $oe->courseid . '.');
 
                 // Remove the instance.
                 // Basically, we would only need to remove the row from mdl_enrol as all course enrolments are gone already,

@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
     // Require plugin library.
-    require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+    require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
     // Show the webservice token from the DB.
     // But only if we are on the right page to save unnecessary database queries.
@@ -49,7 +49,7 @@ if ($ADMIN->fulltree) {
         // Create wwwroot information widget.
         $name = 'enrol_semco/settings_wwwrootinfo';
         $title = get_string('settings_wwwrootinfo', 'enrol_semco', null, true);
-        $description = '<p>'.get_string('settings_wwwrootinfofound', 'enrol_semco', $CFG->wwwroot, true).'</p>';
+        $description = '<p>' . get_string('settings_wwwrootinfofound', 'enrol_semco', $CFG->wwwroot, true) . '</p>';
         $setting = new admin_setting_description($name, $title, $description);
         $settings->add($setting);
 
@@ -67,7 +67,7 @@ if ($ADMIN->fulltree) {
             // Create token information widget.
             $name = 'enrol_semco/settings_tokeninfo';
             $title = get_string('settings_tokeninfo', 'enrol_semco', null, true);
-            $description = '<p>'.get_string('settings_tokeninfofound', 'enrol_semco', $webservicetoken, true).'</p>';
+            $description = '<p>' . get_string('settings_tokeninfofound', 'enrol_semco', $webservicetoken, true) . '</p>';
             $setting = new admin_setting_description($name, $title, $description);
             $settings->add($setting);
 
@@ -76,7 +76,7 @@ if ($ADMIN->fulltree) {
             // Create token information widget.
             $name = 'enrol_semco/settings_tokeninfo';
             $title = get_string('settings_tokeninfo', 'enrol_semco', null, true);
-            $description = '<p>'.get_string('settings_tokeninfononefound', 'enrol_semco', null, true).'</p>';
+            $description = '<p>' . get_string('settings_tokeninfononefound', 'enrol_semco', null, true) . '</p>';
             $setting = new admin_setting_description($name, $title, $description);
             $settings->add($setting);
         }
@@ -86,10 +86,12 @@ if ($ADMIN->fulltree) {
     $name = 'enrol_semco/settings_enrolmentreportheading';
     $reporturl = new \core\url('/enrol/semco/enrolreport.php');
     $title = get_string('settings_enrolmentreportheading', 'enrol_semco', null, true);
-    $description = get_string('settings_enrolmentreportheading_desc', 'enrol_semco', null, true).'<br />'.
-            \core\output\html_writer::link($reporturl,
-                    get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
-                    ['class' => 'btn btn-secondary my-3']);
+    $description = get_string('settings_enrolmentreportheading_desc', 'enrol_semco', null, true) . '<br />' .
+            \core\output\html_writer::link(
+                $reporturl,
+                get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
+                ['class' => 'btn btn-secondary my-3']
+            );
     $setting = new admin_setting_heading($name, $title, $description);
     $settings->add($setting);
 
@@ -138,10 +140,12 @@ if ($ADMIN->fulltree) {
         $name = 'enrol_semco/settings_coursecompletionnotfound';
         $title = '';
         $localrecompletionurl = new \core\url('/admin/settings.php', ['section' => 'local_recompletion']);
-        $notification = new \core\output\notification(get_string('settings_coursecompletionlrcintro', 'enrol_semco', null, true).
-                get_string('settings_coursecompletionlrcfound', 'enrol_semco', null, true).
+        $notification = new \core\output\notification(
+            get_string('settings_coursecompletionlrcintro', 'enrol_semco', null, true) .
+                get_string('settings_coursecompletionlrcfound', 'enrol_semco', null, true) .
                 get_string('settings_coursecompletionnote', 'enrol_semco', $localrecompletionurl->out(), true),
-            \core\output\notification::NOTIFY_SUCCESS);
+            \core\output\notification::NOTIFY_SUCCESS
+        );
         $notification->set_show_closebutton(false);
         $description = $OUTPUT->render($notification);
         $setting = new admin_setting_heading($name, $title, $description);
@@ -153,10 +157,12 @@ if ($ADMIN->fulltree) {
         $name = 'enrol_semco/settings_coursecompletionnotfound';
         $title = '';
         $localrecompletionurl = new \core\url('/admin/settings.php', ['section' => 'local_recompletion']);
-        $notification = new \core\output\notification(get_string('settings_coursecompletionlrcintro', 'enrol_semco', null, true).
-                get_string('settings_coursecompletionlrcnotfound', 'enrol_semco', null, true).
+        $notification = new \core\output\notification(
+            get_string('settings_coursecompletionlrcintro', 'enrol_semco', null, true) .
+                get_string('settings_coursecompletionlrcnotfound', 'enrol_semco', null, true) .
                 get_string('settings_coursecompletionnote', 'enrol_semco', $localrecompletionurl->out(), true),
-            \core\output\notification::NOTIFY_INFO);
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         $description = $OUTPUT->render($notification);
         $setting = new admin_setting_heading($name, $title, $description);

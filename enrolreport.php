@@ -25,13 +25,13 @@
 use enrol_semco\enrollist_table;
 
 // Include config.php.
-require(__DIR__.'/../../config.php');
+require(__DIR__ . '/../../config.php');
 
 // Globals.
 global $CFG, $PAGE, $OUTPUT;
 
 // Include tablelib.php.
-require_once($CFG->libdir.'/tablelib.php');
+require_once($CFG->libdir . '/tablelib.php');
 
 // Get parameters.
 $download = optional_param('download', '', PARAM_ALPHA);
