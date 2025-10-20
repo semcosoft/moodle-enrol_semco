@@ -33,7 +33,6 @@ use core\task\adhoc_task;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class set_webservice_capability extends adhoc_task {
-
     /**
      * Run the main task.
      */
@@ -41,7 +40,7 @@ class set_webservice_capability extends adhoc_task {
         global $CFG, $DB;
 
         // Require plugin library.
-        require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+        require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
         // Get system context.
         $systemcontext = \context_system::instance();

@@ -182,10 +182,12 @@ function enrol_semco_detect_enrolment_overlap($courseid, $userid, $timestart, $t
     }
 
     // If any overlap exists.
-    if ((isset($overlapunlimitedexists) && $overlapunlimitedexists == true) ||
+    if (
+        (isset($overlapunlimitedexists) && $overlapunlimitedexists == true) ||
             (isset($overlapstartexists) && $overlapstartexists == true) ||
             (isset($overlapendexists) && $overlapendexists == true) ||
-            (isset($overlapbothexists) && $overlapbothexists == true)) {
+            (isset($overlapbothexists) && $overlapbothexists == true)
+    ) {
         return true;
 
         // Otherwise.
@@ -240,7 +242,6 @@ function enrol_semco_check_local_recompletion() {
 
     // If the check has not been done yet.
     if (!isset($localrecompletioninstalled)) {
-
         // If PHPUnit tests are running.
         if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
             // If we simulate the plugin to be not installed.
@@ -300,15 +301,18 @@ function enrol_semco_callbackimpl_before_standard_top_of_body_html(&$hook = null
 
     // Allow admins and users with the enrol/semco:viewreport capability to access the report.
     $context = context_system::instance();
-    if (has_capability('moodle/site:config', $context) ||
-            has_capability('enrol/semco:viewreport', $context)) {
-
+    if (
+        has_capability('moodle/site:config', $context) ||
+            has_capability('enrol/semco:viewreport', $context)
+    ) {
         // Create new navigation node for enrolment report.
-        $reportnode = navigation_node::create(get_string('reportpagetitle', 'enrol_semco', null, true),
-                new \core\url('/enrol/semco/enrolreport.php'),
-                navigation_node::TYPE_SETTING,
-                null,
-                'enrol_semco_enrolreport');
+        $reportnode = navigation_node::create(
+            get_string('reportpagetitle', 'enrol_semco', null, true),
+            new \core\url('/enrol/semco/enrolreport.php'),
+            navigation_node::TYPE_SETTING,
+            null,
+            'enrol_semco_enrolreport'
+        );
 
         // Find the reports container in navigation.
         $reports = $PAGE->settingsnav->find('reports', navigation_node::TYPE_SETTING);
