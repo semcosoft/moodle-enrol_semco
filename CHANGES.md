@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2025-10-15 - Release: Switch lead maintainer from lern.link GmbH to SEMCO Software Engineering GmbH
 * 2025-10-15 - Tests: Switch Github actions workflows to reusable workflows by Moodle an Hochschulen e.V.
 
 ### v5.0-r1
