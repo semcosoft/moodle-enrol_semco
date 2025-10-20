@@ -4,6 +4,10 @@ moodle-enrol_semco
 Changes
 -------
 
+### Unreleased
+
+* 2025-10-15 - Tests: Switch Github actions workflows to reusable workflows by Moodle an Hochschulen e.V.
+
 ### v4.5-r2
 
 * 2025-06-08 - Bugfix: Upgrading Moodle core with enrol_semco in place could have triggered a fatal error in Moodle core, resolves #2.
@@ -65,8 +69,8 @@ Changes
 * 2023-11-10 - Bugfix: Get rid of a "This page did not call $PAGE->set_url(...)" debug message during the plugin installation via CLI.
 * 2023-10-30 - Feature: The plugin will add new user profile fields "SEMCO User birthday" and "SEMCO User place of birth" which will be filled by SEMCO with the user's birthday and place of birth.
 * 2023-10-30 - Improvement: Use a dedicated semcowebservice mail address for the SEMCO webservice user as the noreply address which has been used up to now may be empty.
-* 2023-10-12 - Improvement: Remove the user profile fields and user profile field category when the plugin is uninstalled. 
-* 2023-10-12 - Feature: The plugin will add a new user profile field "SEMCO User company" which will be filled by SEMCO with the user's company. 
+* 2023-10-12 - Improvement: Remove the user profile fields and user profile field category when the plugin is uninstalled.
+* 2023-10-12 - Feature: The plugin will add a new user profile field "SEMCO User company" which will be filled by SEMCO with the user's company.
 * 2023-09-27 - Improvement: Add a scheduled task which cleans up orphaned SEMCO enrolment instances which were not removed when a user was deleted (as SEMCO enrolment instances are only properly removed when a user is unenrolled via webservice).
 * 2023-09-26 - Feature: The new webservice enrol_semco_get_course_completions will return the course completions for given SEMCO user enrolments.
 * 2023-09-26 - Bugfix: The webservice enrol_semco_edit_enrolment didn't process enrolment period changes with given timeend dates but without given timestart dates.
