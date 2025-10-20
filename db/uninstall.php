@@ -25,10 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Require plugin library.
-require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
 // Require user library.
-require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->dirroot . '/user/lib.php');
 
 // Require user profile field library.
 require_once($CFG->dirroot . '/user/profile/definelib.php');
@@ -46,8 +46,10 @@ function xmldb_enrol_semco_uninstall() {
         delete_role($rolerecord->id);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('uninstaller_removedrole', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('uninstaller_removedrole', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
@@ -59,8 +61,10 @@ function xmldb_enrol_semco_uninstall() {
         user_delete_user($userrecord);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('uninstaller_removeduser', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('uninstaller_removeduser', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
@@ -131,16 +135,20 @@ function xmldb_enrol_semco_uninstall() {
     // If any profile field or the category was rewmoved.
     if ($fieldsremoved == true) {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('uninstaller_removedprofilefields', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('uninstaller_removedprofilefields', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
 
     // Show a notification about the fact that webservices and webservice auth will remain enabled
     // (this also looks fine in the CLI installer).
-    $notification = new \core\output\notification(get_string('uninstaller_remainenabled', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+    $notification = new \core\output\notification(
+        get_string('uninstaller_remainenabled', 'enrol_semco'),
+        \core\output\notification::NOTIFY_INFO
+    );
     $notification->set_show_closebutton(false);
     echo $OUTPUT->render($notification);
 }

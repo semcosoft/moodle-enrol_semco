@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Require plugin library.
-require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
 $services = [
         'SEMCO' => [

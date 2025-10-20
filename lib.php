@@ -205,7 +205,7 @@ function enrol_semco_before_standard_top_of_body_html() {
     global $CFG;
 
     // Require local library.
-    require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+    require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
     // Call and return callback implementation.
     return enrol_semco_callbackimpl_before_standard_top_of_body_html();
