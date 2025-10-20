@@ -29,10 +29,10 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 // Require plugin library.
-require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
 // Require table library.
-require_once($CFG->dirroot.'/lib/tablelib.php');
+require_once($CFG->dirroot . '/lib/tablelib.php');
 
 /**
  * Class enrollist_table
@@ -42,7 +42,6 @@ require_once($CFG->dirroot.'/lib/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class enrollist_table extends \core_table\sql_table {
-
     /**
      * Override the constructor to construct a enrollist table instead of a simple table.
      *
@@ -55,7 +54,7 @@ class enrollist_table extends \core_table\sql_table {
         parent::__construct($uniqueid);
 
         // Define base URL.
-        $this->define_baseurl($CFG->wwwroot.'/enrol/semco/enrolreport.php');
+        $this->define_baseurl($CFG->wwwroot . '/enrol/semco/enrolreport.php');
 
         // Allow and configure downloading.
         $this->is_downloadable(true);

@@ -25,16 +25,16 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Require plugin library.
-require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
 // Require user library.
-require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->dirroot . '/user/lib.php');
 
 // Require webservice library.
-require_once($CFG->dirroot.'/webservice/lib.php');
+require_once($CFG->dirroot . '/webservice/lib.php');
 
 // Require user profile field library.
-require_once($CFG->dirroot.'/user/profile/definelib.php');
+require_once($CFG->dirroot . '/user/profile/definelib.php');
 
 /**
  * Install the plugin.
@@ -54,8 +54,10 @@ function xmldb_enrol_semco_install() {
         set_config('enablewebservices', 1);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_enabledws', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_enabledws', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
@@ -67,8 +69,10 @@ function xmldb_enrol_semco_install() {
         \core\plugininfo\webservice::enable_plugin('rest', 1);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_enabledrest', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_enabledrest', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
@@ -76,9 +80,11 @@ function xmldb_enrol_semco_install() {
     // If the SEMCO webservice role does not exist yet. As this plugin is installed freshly, this should be the case.
     if ($DB->record_exists('role', ['shortname' => ENROL_SEMCO_ROLEANDUSERNAME]) == false) {
         // Create the SEMCO webservice role.
-        $semcoroleid = create_role(get_string('installer_rolename', 'enrol_semco'),
-                ENROL_SEMCO_ROLEANDUSERNAME,
-                get_string('installer_roledescription', 'enrol_semco'));
+        $semcoroleid = create_role(
+            get_string('installer_rolename', 'enrol_semco'),
+            ENROL_SEMCO_ROLEANDUSERNAME,
+            get_string('installer_roledescription', 'enrol_semco')
+        );
 
         // Allow the role in the system context.
         set_role_contextlevels($semcoroleid, [CONTEXT_SYSTEM]);
@@ -121,8 +127,10 @@ function xmldb_enrol_semco_install() {
         core_role_set_assign_allowed($semcoroleid, enrol_semco_get_firststudentroleid());
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdrole', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdrole', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -134,8 +142,10 @@ function xmldb_enrol_semco_install() {
             \core\task\manager::queue_adhoc_task($adhoctask);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('installer_queuedcapabilitytask', 'enrol_semco'),
-                    \core\output\notification::NOTIFY_WARNING);
+            $notification = new \core\output\notification(
+                get_string('installer_queuedcapabilitytask', 'enrol_semco'),
+                \core\output\notification::NOTIFY_WARNING
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -143,8 +153,10 @@ function xmldb_enrol_semco_install() {
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedrole', 'enrol_semco'),
-                \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedrole', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -158,8 +170,10 @@ function xmldb_enrol_semco_install() {
         \core\plugininfo\auth::enable_plugin(ENROL_SEMCO_AUTH, true);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_enabledauth', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_enabledauth', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }
@@ -172,12 +186,14 @@ function xmldb_enrol_semco_install() {
         // And add firstname, lastname and email to the user account.
         $semcouser->firstname = get_string('installer_userfirstname', 'enrol_semco');
         $semcouser->lastname = get_string('installer_userlastname', 'enrol_semco');
-        $semcouser->email = ENROL_SEMCO_ROLEANDUSERNAME.'@'.get_host_from_url($CFG->wwwroot);
+        $semcouser->email = ENROL_SEMCO_ROLEANDUSERNAME . '@' . get_host_from_url($CFG->wwwroot);
         user_update_user($semcouser, false);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createduser', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createduser', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -196,8 +212,10 @@ function xmldb_enrol_semco_install() {
             role_assign($semcoroleid, $semcouser->id, $systemcontext->id);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('installer_addedusertorole', 'enrol_semco'),
-                    \core\output\notification::NOTIFY_INFO);
+            $notification = new \core\output\notification(
+                get_string('installer_addedusertorole', 'enrol_semco'),
+                \core\output\notification::NOTIFY_INFO
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -217,8 +235,10 @@ function xmldb_enrol_semco_install() {
         $webservicemanager->add_ws_authorised_user($serviceuser);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_addedusertoservice', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_addedusertoservice', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -229,24 +249,30 @@ function xmldb_enrol_semco_install() {
         // Unfortunately, with the previous function, the token was created with a creator ID of 0 which will result in the
         // fact that the token is not shown on /admin/webservice/tokens.php.
         // To avoid this problem, we set the creatorid of the token to the SEMCO webservice user id now.
-        $generatedtoken = $DB->get_record('external_tokens',
-                ['externalserviceid' => $semcoserviceid, 'userid' => $semcouser->id],
-                '*',
-                MUST_EXIST);
+        $generatedtoken = $DB->get_record(
+            'external_tokens',
+            ['externalserviceid' => $semcoserviceid, 'userid' => $semcouser->id],
+            '*',
+            MUST_EXIST
+        );
         $generatedtoken->creatorid = $semcouser->id;
         $DB->update_record('external_tokens', $generatedtoken);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdusertoken', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdusertoken', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreateduser', 'enrol_semco'),
-                \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreateduser', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -265,8 +291,10 @@ function xmldb_enrol_semco_install() {
         profile_save_category($categorydata);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefieldcategory', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefieldcategory', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -301,16 +329,20 @@ function xmldb_enrol_semco_install() {
         profile_save_field($fielddata, []);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefield1', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefield1', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedprofilefield1', 'enrol_semco'),
-                \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedprofilefield1', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -345,16 +377,20 @@ function xmldb_enrol_semco_install() {
         profile_save_field($fielddata, []);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefield2', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefield2', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedprofilefield2', 'enrol_semco'),
-            \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedprofilefield2', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -389,16 +425,20 @@ function xmldb_enrol_semco_install() {
         profile_save_field($fielddata, []);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefield3', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefield3', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedprofilefield3', 'enrol_semco'),
-            \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedprofilefield3', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -433,16 +473,20 @@ function xmldb_enrol_semco_install() {
         profile_save_field($fielddata, []);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefield4', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefield4', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedprofilefield4', 'enrol_semco'),
-            \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedprofilefield4', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -477,16 +521,20 @@ function xmldb_enrol_semco_install() {
         profile_save_field($fielddata, []);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_createdprofilefield5', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('installer_createdprofilefield5', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
         // Otherwise, there might be leftovers from previous installations and admin's tests.
     } else {
         // Show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('installer_notcreatedprofilefield5', 'enrol_semco'),
-            \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_notcreatedprofilefield5', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -498,20 +546,26 @@ function xmldb_enrol_semco_install() {
     \core\plugininfo\enrol::enable_plugin('semco', true);
 
     // And show a notification about that fact (this also looks fine in the CLI installer).
-    $notification = new \core\output\notification(get_string('installer_enabledplugin', 'enrol_semco'),
-            \core\output\notification::NOTIFY_INFO);
+    $notification = new \core\output\notification(
+        get_string('installer_enabledplugin', 'enrol_semco'),
+        \core\output\notification::NOTIFY_INFO
+    );
     $notification->set_show_closebutton(false);
     echo $OUTPUT->render($notification);
 
     // Show the final notification, depending on the fact if there were problems or not.
     if ($therewasaproblem == false) {
-        $notification = new \core\output\notification(get_string('installer_finalnotenoproblems', 'enrol_semco'),
-                \core\output\notification::NOTIFY_SUCCESS);
+        $notification = new \core\output\notification(
+            get_string('installer_finalnotenoproblems', 'enrol_semco'),
+            \core\output\notification::NOTIFY_SUCCESS
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     } else {
-        $notification = new \core\output\notification(get_string('installer_finalnotewithproblems', 'enrol_semco'),
-                \core\output\notification::NOTIFY_ERROR);
+        $notification = new \core\output\notification(
+            get_string('installer_finalnotewithproblems', 'enrol_semco'),
+            \core\output\notification::NOTIFY_ERROR
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
     }

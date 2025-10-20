@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Require plugin library.
-require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
 // Require user profile field library.
 require_once($CFG->dirroot . '/user/profile/definelib.php');
@@ -57,8 +57,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
         assign_capability('moodle/grade:viewall', CAP_ALLOW, $semcoroleid, $systemcontext->id);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('updater_2023092601_addcapability', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('updater_2023092601_addcapability', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 
@@ -97,8 +99,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
             profile_save_field($fielddata, []);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('updater_2023092605_addprofilefield', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+            $notification = new \core\output\notification(
+                get_string('updater_2023092605_addprofilefield', 'enrol_semco'),
+                \core\output\notification::NOTIFY_INFO
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -138,8 +142,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
             profile_save_field($fielddata, []);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('updater_2023092606_addprofilefield3', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+            $notification = new \core\output\notification(
+                get_string('updater_2023092606_addprofilefield3', 'enrol_semco'),
+                \core\output\notification::NOTIFY_INFO
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -174,8 +180,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
             profile_save_field($fielddata, []);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('updater_2023092606_addprofilefield4', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+            $notification = new \core\output\notification(
+                get_string('updater_2023092606_addprofilefield4', 'enrol_semco'),
+                \core\output\notification::NOTIFY_INFO
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -215,8 +223,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
             profile_save_field($fielddata, []);
 
             // And show a notification about that fact (this also looks fine in the CLI installer).
-            $notification = new \core\output\notification(get_string('updater_2023092608_addprofilefield5', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+            $notification = new \core\output\notification(
+                get_string('updater_2023092608_addprofilefield5', 'enrol_semco'),
+                \core\output\notification::NOTIFY_INFO
+            );
             $notification->set_show_closebutton(false);
             echo $OUTPUT->render($notification);
         }
@@ -243,7 +253,7 @@ function xmldb_enrol_semco_upgrade($oldversion) {
                     'name' => get_string('installer_userfield4fullname', 'enrol_semco'),
                 ];
             $affectedfieldsql = 'SELECT * FROM {user_info_field}
-                    WHERE '.$DB->sql_compare_text('name').' = '.$DB->sql_compare_text(':name');
+                    WHERE ' . $DB->sql_compare_text('name') . ' = ' . $DB->sql_compare_text(':name');
             $affectedfield = $DB->get_record_sql($affectedfieldsql, $affectedfieldparams);
 
             // If we have not found the field.
@@ -252,9 +262,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
             if ($affectedfield === false) {
                 // Show a notification about that fact (this also looks fine in the CLI installer).
                 $notification = new \core\output\notification(
-                    get_string('updater_2023092610_fixprofilefield4', 'enrol_semco').' '.
+                    get_string('updater_2023092610_fixprofilefield4', 'enrol_semco') . ' ' .
                             get_string('updater_2023092610_fixprofilefield4fail', 'enrol_semco'),
-                    \core\output\notification::NOTIFY_ERROR);
+                    \core\output\notification::NOTIFY_ERROR
+                );
                 $notification->set_show_closebutton(false);
                 echo $OUTPUT->render($notification);
 
@@ -268,9 +279,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
 
                 // And show a notification about that fact (this also looks fine in the CLI installer).
                 $notification = new \core\output\notification(
-                    get_string('updater_2023092610_fixprofilefield4', 'enrol_semco').' '.
+                    get_string('updater_2023092610_fixprofilefield4', 'enrol_semco') . ' ' .
                     get_string('updater_2023092610_fixprofilefield4succ', 'enrol_semco'),
-                    \core\output\notification::NOTIFY_WARNING);
+                    \core\output\notification::NOTIFY_WARNING
+                );
                 $notification->set_show_closebutton(false);
                 echo $OUTPUT->render($notification);
             }
@@ -295,8 +307,10 @@ function xmldb_enrol_semco_upgrade($oldversion) {
         assign_capability('enrol/semco:resetcoursecompletion', CAP_ALLOW, $semcoroleid, $systemcontext->id);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
-        $notification = new \core\output\notification(get_string('updater_2023100902_addcapability', 'enrol_semco'),
-                \core\output\notification::NOTIFY_INFO);
+        $notification = new \core\output\notification(
+            get_string('updater_2023100902_addcapability', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
 

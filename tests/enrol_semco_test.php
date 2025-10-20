@@ -37,7 +37,6 @@ use moodle_url;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class enrol_semco_test extends \advanced_testcase {
-
     /**
      * Setup testcase.
      */
@@ -45,7 +44,7 @@ final class enrol_semco_test extends \advanced_testcase {
         global $CFG, $DB;
 
         // Require plugin library.
-        require_once($CFG->dirroot.'/enrol/semco/locallib.php');
+        require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
         // Call the parent setup.
         parent::setUp();
@@ -116,8 +115,14 @@ final class enrol_semco_test extends \advanced_testcase {
         $semcobookingid = 12345;
 
         // Enrol the user in the course with the webservice which we want to test.
-        $webservicereturn = external::enrol_user($user->id, $course->id, $semcobookingid,
-                $timestart, $timeend, $suspend);
+        $webservicereturn = external::enrol_user(
+            $user->id,
+            $course->id,
+            $semcobookingid,
+            $timestart,
+            $timeend,
+            $suspend
+        );
 
         // Check the webservice return structure.
         $this->assertNotEmpty($webservicereturn);
@@ -186,8 +191,10 @@ final class enrol_semco_test extends \advanced_testcase {
         $coursecontextinstance = array_pop($coursecontextinstances);
 
         // Get the role assignments from the database.
-        $roleassignmeninstances = $DB->get_records('role_assignments',
-                ['contextid' => $coursecontextinstance->id, 'userid' => $user->id]);
+        $roleassignmeninstances = $DB->get_records(
+            'role_assignments',
+            ['contextid' => $coursecontextinstance->id, 'userid' => $user->id]
+        );
         $this->assertCount(1, $roleassignmeninstances);
 
         // Pick the only role assignment instance.
@@ -311,8 +318,15 @@ final class enrol_semco_test extends \advanced_testcase {
      * @dataProvider enrol_user_booking2_exceptions_provider
      * @covers \enrol_semco\external::enrol_user
      */
-    public function test_enrol_user_booking2_exceptions($timestart1, $timeend1, $semcobookingid1, $timestart2, $timeend2,
-            $semcobookingid2, $exception): void {
+    public function test_enrol_user_booking2_exceptions(
+        $timestart1,
+        $timeend1,
+        $semcobookingid1,
+        $timestart2,
+        $timeend2,
+        $semcobookingid2,
+        $exception
+    ): void {
         // Create a user and a course.
         $user = $this->create_user();
         $course = $this->create_course();
@@ -337,7 +351,7 @@ final class enrol_semco_test extends \advanced_testcase {
         global $CFG, $DB;
 
         // Require local_recompletion plugin library.
-        require_once($CFG->dirroot.'/local/recompletion/locallib.php');
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
         // Create a user and a course.
         $user = $this->create_user();
@@ -366,7 +380,7 @@ final class enrol_semco_test extends \advanced_testcase {
         global $CFG;
 
         // Require local_recompletion plugin library.
-        require_once($CFG->dirroot.'/local/recompletion/locallib.php');
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
         return [
             // Test the localrecompletionnotenabled exception.
@@ -812,8 +826,18 @@ final class enrol_semco_test extends \advanced_testcase {
      * @dataProvider edit_enrolment_booking2_exceptions_provider
      * @covers \enrol_semco\external::edit_enrolment
      */
-    public function test_edit_enrolment_booking2_exceptions($timestart1, $timeend1, $semcobookingid1, $timestart2, $timeend2,
-            $semcobookingid2, $timestart3, $timeend3, $semcobookingid3, $exception): void {
+    public function test_edit_enrolment_booking2_exceptions(
+        $timestart1,
+        $timeend1,
+        $semcobookingid1,
+        $timestart2,
+        $timeend2,
+        $semcobookingid2,
+        $timestart3,
+        $timeend3,
+        $semcobookingid3,
+        $exception
+    ): void {
         // Create a user and a course.
         $user = $this->create_user();
         $course = $this->create_course();
@@ -873,7 +897,7 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Create n users.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'user'.$i} = $this->create_user($i);
+            ${'user' . $i} = $this->create_user($i);
         }
 
         // Create a course.
@@ -881,13 +905,19 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Initialize more enrolment data.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'semcobookingid'.$i} = 12345 + $i;
+            ${'semcobookingid' . $i} = 12345 + $i;
         }
 
         // Enrol the users in the course.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            external::enrol_user(${'user'.$i}->id, $course->id, ${'semcobookingid'.$i},
-                    $timestart + $i * 10, $timeend + $i * 10, $suspend);
+            external::enrol_user(
+                ${'user' . $i}->id,
+                $course->id,
+                ${'semcobookingid' . $i},
+                $timestart + $i * 10,
+                $timeend + $i * 10,
+                $suspend
+            );
         }
 
         // Get the enrolments for the course with the webservice which we want to test.
@@ -912,14 +942,14 @@ final class enrol_semco_test extends \advanced_testcase {
             for ($i = 1; $i <= $numenrolments; $i++) {
                 // Check the enrolment details in the webservice return.
                 $enrolment = array_shift($enrolments);
-                $this->assertEquals(${'user'.$i}->id, $enrolment->userid);
-                $this->assertEquals(${'semcobookingid'.$i}, $enrolment->semcobookingid);
+                $this->assertEquals(${'user' . $i}->id, $enrolment->userid);
+                $this->assertEquals(${'semcobookingid' . $i}, $enrolment->semcobookingid);
                 $this->assertEquals($timestart + $i * 10, $enrolment->timestart);
                 $this->assertEquals($timeend + $i * 10, $enrolment->timeend);
                 $this->assertEquals($suspend, $enrolment->suspend);
 
                 // Get the SEMCO enrolment instance from the database.
-                $enrolmentinstances = $DB->get_records('enrol', ['customchar1' => ${'semcobookingid'.$i}, 'enrol' => 'semco']);
+                $enrolmentinstances = $DB->get_records('enrol', ['customchar1' => ${'semcobookingid' . $i}, 'enrol' => 'semco']);
                 $this->assertCount(1, $enrolmentinstances);
 
                 // Pick the only SEMCO enrolment instance.
@@ -927,7 +957,7 @@ final class enrol_semco_test extends \advanced_testcase {
 
                 // Get the user enrolment instances from the database.
                 $userenrolmentinstances = $DB->get_records('user_enrolments', ['enrolid' => $enrolmentinstance->id,
-                        'userid' => ${'user'.$i}->id]);
+                        'userid' => ${'user' . $i}->id]);
                 $this->assertCount(1, $userenrolmentinstances);
 
                 // Pick the only user enrolment instance.
@@ -1003,13 +1033,18 @@ final class enrol_semco_test extends \advanced_testcase {
      * @dataProvider get_course_completions_successful_provider
      * @covers \enrol_semco\external::get_course_completions
      */
-    public function test_get_course_completions_successful($numenrolments, $canbecompleted = 0, $completioninfo = 0, $finished = 0,
-            $gradedata = 0): void {
+    public function test_get_course_completions_successful(
+        $numenrolments,
+        $canbecompleted = 0,
+        $completioninfo = 0,
+        $finished = 0,
+        $gradedata = 0
+    ): void {
         global $CFG, $DB;
 
         // Create n users.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'user'.$i} = $this->create_user($i);
+            ${'user' . $i} = $this->create_user($i);
         }
 
         // Create a course.
@@ -1018,19 +1053,19 @@ final class enrol_semco_test extends \advanced_testcase {
         // Enrol the users into the course.
         $studentrole = $DB->get_record('role', ['shortname' => 'student']);
         for ($i = 1; $i <= $numenrolments; $i++) {
-            $this->getDataGenerator()->enrol_user(${'user'.$i}->id, $course->id, $studentrole->id);
+            $this->getDataGenerator()->enrol_user(${'user' . $i}->id, $course->id, $studentrole->id);
         }
 
         // Initialize more enrolment data.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'semcobookingid'.$i} = 12345 + $i;
+            ${'semcobookingid' . $i} = 12345 + $i;
         }
 
         // Initialize completion data for later comparison.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'timecompleted'.$i} = null;
-            ${'grade'.$i} = null;
-            ${'passed'.$i} = null;
+            ${'timecompleted' . $i} = null;
+            ${'grade' . $i} = null;
+            ${'passed' . $i} = null;
         }
         $grademin = null;
         $grademax = null;
@@ -1038,13 +1073,13 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Enrol the users in the course.
         for ($i = 1; $i <= $numenrolments; $i++) {
-            ${'enrolment'.$i} = external::enrol_user(${'user'.$i}->id, $course->id, ${'semcobookingid'.$i});
+            ${'enrolment' . $i} = external::enrol_user(${'user' . $i}->id, $course->id, ${'semcobookingid' . $i});
         }
 
         // Pick the enrolment IDs and put them into an array.
         $enrolmentids = [];
         for ($i = 1; $i <= $numenrolments; $i++) {
-            $enrolmentids[] = ${'enrolment'.$i}['enrolid'];
+            $enrolmentids[] = ${'enrolment' . $i}['enrolid'];
         }
 
         // If the course can be completed.
@@ -1064,7 +1099,7 @@ final class enrol_semco_test extends \advanced_testcase {
         if ($completioninfo == 1) {
             for ($i = 1; $i <= $numenrolments; $i++) {
                 // Create a completion object and mark the course as enrolled and in progress at midnight today.
-                $completion = new \completion_completion(['userid' => ${'user'.$i}->id, 'course' => $course->id]);
+                $completion = new \completion_completion(['userid' => ${'user' . $i}->id, 'course' => $course->id]);
                 $completion->mark_enrolled(strtotime('today midnight'));
                 $completion->mark_inprogress(strtotime('today midnight'));
             }
@@ -1073,9 +1108,9 @@ final class enrol_semco_test extends \advanced_testcase {
             if ($finished == 1) {
                 // Set the course as finished at 1am today.
                 for ($i = 1; $i <= $numenrolments; $i++) {
-                    $completion = new \completion_completion(['userid' => ${'user'.$i}->id, 'course' => $course->id]);
-                    ${'timecompleted'.$i} = strtotime('today '.$i.'am');
-                    $completion->mark_complete(${'timecompleted'.$i});
+                    $completion = new \completion_completion(['userid' => ${'user' . $i}->id, 'course' => $course->id]);
+                    ${'timecompleted' . $i} = strtotime('today ' . $i . 'am');
+                    $completion->mark_complete(${'timecompleted' . $i});
                 }
 
                 // If the course has grade data.
@@ -1098,9 +1133,9 @@ final class enrol_semco_test extends \advanced_testcase {
 
                     // Set grades for the users.
                     for ($i = 1; $i <= $numenrolments; $i++) {
-                        ${'grade'.$i} = 10 * $i;
-                        ${'passed'.$i} = ${'grade'.$i} >= $gradepass;
-                        $gradeitem->update_final_grade(${'user'.$i}->id, ${'grade'.$i});
+                        ${'grade' . $i} = 10 * $i;
+                        ${'passed' . $i} = ${'grade' . $i} >= $gradepass;
+                        $gradeitem->update_final_grade(${'user' . $i}->id, ${'grade' . $i});
                     }
                 }
             }
@@ -1128,17 +1163,17 @@ final class enrol_semco_test extends \advanced_testcase {
             for ($i = 1; $i <= $numenrolments; $i++) {
                 // Check the completion details in the webservice return.
                 $completion = array_shift($completions);
-                $this->assertEquals(${'user'.$i}->id, $completion['userid']);
-                $this->assertEquals(${'semcobookingid'.$i}, $completion['semcobookingid']);
+                $this->assertEquals(${'user' . $i}->id, $completion['userid']);
+                $this->assertEquals(${'semcobookingid' . $i}, $completion['semcobookingid']);
                 $this->assertEquals((bool) $canbecompleted, $completion['canbecompleted']);
                 $this->assertEquals((bool) $finished, $completion['completed']);
-                $this->assertEquals(${'timecompleted'.$i}, $completion['timecompleted']);
-                $this->assertEquals(${'grade'.$i}, $completion['finalgrade']);
-                $this->assertEquals(${'grade'.$i}, $completion['finalgraderaw']);
+                $this->assertEquals(${'timecompleted' . $i}, $completion['timecompleted']);
+                $this->assertEquals(${'grade' . $i}, $completion['finalgrade']);
+                $this->assertEquals(${'grade' . $i}, $completion['finalgraderaw']);
                 $this->assertEquals($grademin, $completion['grademinraw']);
                 $this->assertEquals($grademax, $completion['grademaxraw']);
                 $this->assertEquals($gradepass, $completion['gradepassraw']);
-                $this->assertEquals(${'passed'.$i}, $completion['passed']);
+                $this->assertEquals(${'passed' . $i}, $completion['passed']);
             }
         }
     }
@@ -1205,14 +1240,17 @@ final class enrol_semco_test extends \advanced_testcase {
         global $DB;
 
         // Prepare the array of (too many) enrolment IDs.
-        $enrolids = array_map(function() {
+        $enrolids = array_map(function () {
             return rand(10000000, 99999999);
         }, range(1, 101));
 
         // Expect the specified exception.
         $this->expectException(moodle_exception::class);
-        $this->expectExceptionMessage(get_string('getcoursecompletionsmaxrequest', 'enrol_semco',
-                ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST));
+        $this->expectExceptionMessage(get_string(
+            'getcoursecompletionsmaxrequest',
+            'enrol_semco',
+            ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST
+        ));
 
         // Attempt to get course completions, which should throw the exception.
         external::get_course_completions($enrolids);
@@ -1346,7 +1384,7 @@ final class enrol_semco_test extends \advanced_testcase {
         global $CFG;
 
         // Require local_recompletion plugin library.
-        require_once($CFG->dirroot.'/local/recompletion/locallib.php');
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
         return [
             // Test the localrecompletionnotenabled exception.
@@ -1464,12 +1502,12 @@ final class enrol_semco_test extends \advanced_testcase {
         // Create a user.
         // Normally, this user would be created by SEMCO beforehand with the core_user_create_users webservice.
         $userrecord = [
-            'username' => 'testuser'.$counter,
+            'username' => 'testuser' . $counter,
             'password' => 'password',
             'firstname' => 'Test',
-            'lastname' => 'User '.$counter,
-            'idnumber' => 'KN-'.$counter,
-            'email' => 'foo'.$counter.'@bar.com',
+            'lastname' => 'User ' . $counter,
+            'idnumber' => 'KN-' . $counter,
+            'email' => 'foo' . $counter . '@bar.com',
         ];
         $user = $this->getDataGenerator()->create_user($userrecord);
 
@@ -1487,9 +1525,9 @@ final class enrol_semco_test extends \advanced_testcase {
         // Create a course.
         // Normally, this course would be created by the Moodle manager beforehand.
         $courserecord = [
-            'fullname' => 'Test course '.$counter,
-            'shortname' => 'tc'.$counter,
-            'idnumber' => 'SEMCO-'.$counter.'2345',
+            'fullname' => 'Test course ' . $counter,
+            'shortname' => 'tc' . $counter,
+            'idnumber' => 'SEMCO-' . $counter . '2345',
         ];
         $course = $this->getDataGenerator()->create_course($courserecord);
 
