@@ -1,7 +1,7 @@
 moodle-enrol_semco
 ==================
 
-[![Moodle Plugin CI](https://github.com/lernlink/moodle-enrol_semco/actions/workflows/moodle-plugin-ci.yml/badge.svg?branch=MOODLE_401_STABLE)](https://github.com/lernlink/moodle-enrol_semco/actions?query=workflow%3A%22Moodle+Plugin+CI%22+branch%3AMOODLE_401_STABLE)
+[![Moodle Plugin CI](https://github.com/semcosoft/moodle-enrol_semco/actions/workflows/moodle-plugin-ci.yml/badge.svg?branch=MOODLE_401_STABLE)](https://github.com/semcosoft/moodle-enrol_semco/actions?query=workflow%3A%22Moodle+Plugin+CI%22+branch%3AMOODLE_401_STABLE)
 
 Moodle enrolment plugin which allows the SEMCO seminar management system to enrol and manage users in Moodle courses
 
@@ -178,13 +178,13 @@ How this plugin works
 ### General
 
 This plugin is implemented as enrolment plugin as this is its main purpose: Enrolling users into Moodle courses. To achieve this goal, this plugin offers multiple webservice functions which are called by SEMCO.\
-However, it is important to know that this plugin is part of the full SEMCO-Moodle integration. The business logic of this integration is implemented in SEMCO itself. SEMCO will not only communicate with this plugin but also with Moodle core webservice functions, especially to create users and to fill their user profile fields. To allow this communication, this plugin sets several capabilities from Moodle core during its installation (see above). 
+However, it is important to know that this plugin is part of the full SEMCO-Moodle integration. The business logic of this integration is implemented in SEMCO itself. SEMCO will not only communicate with this plugin but also with Moodle core webservice functions, especially to create users and to fill their user profile fields. To allow this communication, this plugin sets several capabilities from Moodle core during its installation (see above).
 
 ### Course enrolments
 
 Course enrolments which are created by SEMCO with this enrolment method are special in several ways. As Moodle administrator, you should know these facts:
 
-* There is one instance of this enrolment method _per course participant_ instead of one common 'SEMCO' enrolment instance for the whole course. This decision was made to allow SEMCO to store the (user-specific SEMCO booking ID within Moodle and to show this information in the course participant list). 
+* There is one instance of this enrolment method _per course participant_ instead of one common 'SEMCO' enrolment instance for the whole course. This decision was made to allow SEMCO to store the (user-specific SEMCO booking ID within Moodle and to show this information in the course participant list).
 * These user-specific enrolment instances are added and removed on-the-fly everytime when SEMCO is adding a user to a course or removing a user from a course. Adding the SEMCO enrolment method to a course manually is neither necessary nor possible.
 * These user-specific enrolment instances do not have any enrolment instance settings. You simply do not need to configure them.
 * These user-specific enrolment instances are protected. You simply cannot remove them from a course.
@@ -225,7 +225,7 @@ Your SEMCO-Moodle integration does not necessarily need to fully match these usa
 * As mentioned above already, SEMCO acts as leading system for the users which it creates in Moodle and will overwrite the first name, last name or email address fields if necessary. However, Moodle users can still update these profile fields themselves in their Moodle profile by default and might be confused if a change which they made is "magically" reverted sometime later. To avoid this, you can lock these three profile fields on /admin/settings.php?section=authsettingmanual. However, please gauge the pros and cons yourself as locking these fields will affect all existing users with manual authentication and not only SEMCO users.
 * A course which is sold via SEMCO - or ideally all courses in the Moodle instance - should not have self-enrolment enabled. Alternatively, you should configure the 'Authenticated user' role in Moodle in a way that users cannot enrol into courses themselves. This is because you will not want that users who got enrolled into course A by SEMCO are able to enrol into course B themselves (without paying for the course via SEMCO). And you might not want that users who came from SEMCO snoop around in other Moodle courses which are not connected to SEMCO.
 * The role with which SEMCO enrols users into courses (and which can be set in the plugin configuration) should not have the moodle/course:viewparticipants capabilities set. This is because you should assume that these course participants are not all members of the same class / cohort and do not know each other. If they would see each other participants in the course, you might even have a data protection leak.
-* For the same reason, you should also disable the Moodle messaging system to avoid that users get in touch with each other on the Moodle instance. 
+* For the same reason, you should also disable the Moodle messaging system to avoid that users get in touch with each other on the Moodle instance.
 * The system message 'Course completed' should be disabled (on /admin/message.php) as a default. This is because, from SEMCO 7.9 on, SEMCO is able to send out information mails itself as soon as a course has been completed.
 
 
@@ -261,7 +261,7 @@ This plugin is published and regularly updated in the Moodle plugins repository:
 http://moodle.org/plugins/view/enrol_semco
 
 The latest stable version can be found on Github:
-https://github.com/lernlink/moodle-enrol_semco
+https://github.com/semcosoft/moodle-enrol_semco
 
 
 Bug and problem reports
@@ -270,7 +270,7 @@ Bug and problem reports
 This plugin is carefully developed and thoroughly tested, but bugs and problems can always appear.
 
 Please report bugs and problems on Github:
-https://github.com/lernlink/moodle-enrol_semco/issues
+https://github.com/semcosoft/moodle-enrol_semco/issues
 
 
 Community feature proposals
@@ -279,18 +279,10 @@ Community feature proposals
 The functionality of this plugin is primarily implemented for the needs of our clients and published as-is to the community. We are aware that members of the community will have other needs and would love to see them solved by this plugin.
 
 Please issue feature proposals on Github:
-https://github.com/lernlink/moodle-enrol_semco/issues
+https://github.com/semcosoft/moodle-enrol_semco/issues
 
 Please create pull requests on Github:
-https://github.com/lernlink/moodle-enrol_semco/pulls
-
-
-Paid support
-------------
-
-We are always interested to read about your issues and feature proposals or even get a pull request from you on Github. However, please note that our time for working on community Github issues is limited.
-
-As certified Moodle Partner, we also offer paid support for this plugin. If you are interested, please have a look at our services on https://lern.link or get in touch with us directly via team@lernlink.de.
+https://github.com/semcosoft/moodle-enrol_semco/pulls
 
 
 Moodle release support
@@ -323,12 +315,10 @@ If you want to use this plugin with a RTL language and it doesn't work as-is, yo
 Maintainers
 -----------
 
-lern.link GmbH\
-Alexander Bias
+SEMCO Software Engineering GmbH
 
 
 Copyright
 ---------
 
-lern.link GmbH\
-Alexander Bias
+SEMCO Software Engineering GmbH
