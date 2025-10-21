@@ -4,7 +4,7 @@ moodle-enrol_semco
 Changes
 -------
 
-### Unreleased
+### v5.0-r2
 
 * 2025-10-15 - Make codechecker happy again
 * 2025-10-15 - Release: Switch lead maintainer from lern.link GmbH to SEMCO Software Engineering GmbH
