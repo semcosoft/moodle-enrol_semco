@@ -213,6 +213,7 @@ Thus, please do not fiddle with this data, please:
 4. Do not change the settings of the 'SEMCO User ID' profile field, especially do not rename it, unlock it, make it required or change the visibility to anything else than 'Not visible'. You might break the expected / proper usage of this profile field or uncover the profile field data to other users who do not need to see it.
 5. Do not fill the 'SEMCO User ID' profile field of manually created Moodle users and do not try to "link" existing Moodle users to SEMCO by filling their 'SEMCO User ID' profile field. Let SEMCO handle its users itself. SEMCO will not know about these users anyway.
 6. Do not manually enrol SEMCO users who got enrolled into course A by SEMCO into other courses which are controlled by SEMCO as well. Let SEMCO manage its enrolments itself. SEMCO will not know about these manual enrolments anyway.
+7. Last but not least, do not delete Moodle users who were created by SEMCO. You can always trigger the suspension of such a Moodle user account from within SEMCO, but you must not delete Moodle users manually.
 
 
 Important global Moodle settings
