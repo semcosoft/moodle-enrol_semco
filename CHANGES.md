@@ -4,6 +4,10 @@ moodle-enrol_semco
 Changes
 -------
 
+### Unreleased
+
+* 2026-03-20 - Feature: Add CLI script to re-create and harden the webservice token.
+
 ### v5.0-r2
 
 * 2025-10-15 - Make codechecker happy again

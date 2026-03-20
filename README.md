@@ -241,6 +241,21 @@ If you decide to use the companion plugin local_recompletion to allow SEMCO to r
 * By default, local_recompletion grants the local/recompletion:resetmycompletion capability to the participant role. That way, course participants could reset a course's completion on their own. Within a SEMCO-Moodle setup, this should be avoided. Please retract the local/recompletion:resetmycompletion capability from at least the participants role after installing the plugin.
 
 
+CLI tools
+---------
+
+This plugin provides the following CLI tools:
+
+### cli/recreate_webservice_token.php
+
+This script can be used to recreate and to harden the web service token for the SEMCO web service user without going through Moodle’s token management process in the GUI.
+
+Using this script is recommended in the following cases:
+
+* If you need to change or renew the web service token. This may be particularly necessary if you have cloned your Moodle instance and want to use a different SEMCO webservice token in the clone.
+* If you want to harden the web service token. The token is initially created during plugin installation without restrictions. And the CLI script allows you to set IP or date restrictions on the token without hassle.
+
+
 Backup & Restore
 ----------------
 
