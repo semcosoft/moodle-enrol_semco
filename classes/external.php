@@ -1236,4 +1236,139 @@ class external extends external_api {
             ]
         );
     }
+
+    /**
+     * Returns description of method parameters.
+     *
+     * @return external_function_parameters
+     */
+    public static function check_user_existence_by_field_parameters() {
+        return new external_function_parameters(
+            [
+                'value' =>
+                    new external_value(
+                        PARAM_RAW,
+                        'The value of the field to search for.',
+                        VALUE_REQUIRED
+                    ),
+                'field' =>
+                    new external_value(
+                        PARAM_ALPHA,
+                        'The field to identify the user by (\'idnumber\' or \'username\' or \'email\')' .
+                                    ' [optional, default: email].',
+                        VALUE_DEFAULT,
+                        'email'
+                    ),
+            ]
+        );
+    }
+
+    /**
+     * Check if a Moodle user with the given identifier exists.
+     *
+     * @param string $value The value of the field to search for.
+     * @param string $field The field to identify the user by ('idnumber' or 'username' or 'email') [optional].
+     * @return array The webservice's return array
+     * @throws moodle_exception
+     */
+    public static function check_user_existence_by_field($value, $field = 'email') {
+        global $DB;
+
+        // Validate given parameters.
+        $arrayparams = [
+                'value' => $value,
+                'field' => $field,
+        ];
+        $params = self::validate_parameters(self::check_user_existence_by_field_parameters(), $arrayparams);
+
+        // Ensure the webservice user is allowed to run this function in the system context.
+        $context = \context_system::instance();
+        self::validate_context($context);
+
+        // Check that the webservice user has the permission to check user existence.
+        require_capability('enrol/semco:checkuserexistence', $context);
+
+        // Throw an exception if the field parameter is not one of the allowed values.
+        // Determine the correct PARAM_* type for the given field (adopted from core_user_get_users_by_field).
+        switch ($params['field']) {
+            case 'idnumber':
+                $paramtype = \core_user::get_property_type('idnumber');
+                break;
+            case 'username':
+                $paramtype = \core_user::get_property_type('username');
+                break;
+            case 'email':
+                $paramtype = \core_user::get_property_type('email');
+                break;
+            default:
+                throw new moodle_exception('checkuserexistenceinvalidfield', 'enrol_semco', '', $params['field']);
+        }
+
+        // Clean the value and throw an exception if the value was changed by the cleaning, i.e. it was invalid
+        // (adopted from core_user_get_users_by_field).
+        $cleanedvalue = clean_param($params['value'], $paramtype);
+        if ($params['value'] != $cleanedvalue) {
+            throw new \invalid_parameter_exception('The field \'' . $params['field'] .
+                    '\' value is invalid: ' . $params['value'] . ' (cleaned value: ' . $cleanedvalue . ')');
+        }
+
+        // Fetch the user record if it exists.
+        $condition = [$params['field'] => $params['value'], 'deleted' => 0];
+        $userrecord = $DB->get_record('user', $condition);
+
+        // Return the results.
+        if ($userrecord) {
+            return [
+                'userexists' => true,
+                'userid' => $userrecord->id,
+                'firstname' => $userrecord->firstname,
+                'lastname' => $userrecord->lastname,
+                'email' => $userrecord->email,
+                'username' => $userrecord->username,
+                'idnumber' => $userrecord->idnumber,
+            ];
+        } else {
+            return [
+                'userexists' => false,
+                'userid' => null,
+                'firstname' => null,
+                'lastname' => null,
+                'email' => null,
+                'username' => null,
+                'idnumber' => null,
+            ];
+        }
+    }
+
+    /**
+     * Returns description of method result value.
+     *
+     * @return external_single_structure
+     */
+    public static function check_user_existence_by_field_returns() {
+        return new external_single_structure(
+            [
+                'userexists' =>
+                    new external_value(PARAM_BOOL, 'Whether a user exists (true) or not (false).'),
+                'userid' =>
+                    new external_value(PARAM_INT, 'The Moodle user ID of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'firstname' =>
+                    new external_value(PARAM_TEXT, 'The first name of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'lastname' =>
+                    new external_value(PARAM_TEXT, 'The last name of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'email' =>
+                    new external_value(PARAM_RAW, 'The email address of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'username' =>
+                    new external_value(PARAM_RAW, 'The username of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'idnumber' =>
+                    new external_value(PARAM_RAW, 'The ID number of the user' .
+                            ' (or null if the user does not exist).', VALUE_DEFAULT, null, NULL_ALLOWED),
+            ]
+        );
+    }
 }

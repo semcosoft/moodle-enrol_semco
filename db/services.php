@@ -93,4 +93,12 @@ $functions = [
                 'type' => 'write',
                 'services' => [ENROL_SEMCO_SERVICENAME],
         ],
+        'enrol_semco_check_user_existence_by_field' => [
+                'classname' => 'enrol_semco\external',
+                'methodname' => 'check_user_existence_by_field',
+                'description' => 'Check if a Moodle user with the given identifier exists',
+                'capabilities' => 'enrol/semco:checkuserexistence',
+                'type' => 'read',
+                'services' => [ENROL_SEMCO_SERVICENAME],
+        ],
 ];
