@@ -1488,6 +1488,82 @@ final class enrol_semco_test extends \advanced_testcase {
         external::reset_course_completion($userenrolmentinstance->id);
     }
 
+    /*
+     * In the following tests, the check_user_existence_by_field() webservice will be tested.
+     * It will be tested with all relevant permutations of successful parameters and
+     * it will be tested with all relevant exceptions which may happen due to invalid parameters given by SEMCO for whatever reason.
+     * It will not be tested for exceptions which may happen due to severe misconfigurations of the SEMCO plugin or SEMCO webservice
+     * user role in Moodle or due to broken SEMCO plugin installations.
+     */
+
+    /**
+     * Data provider for test_check_user_existence_by_field_successful.
+     *
+     * @return array
+     */
+    public static function check_user_existence_by_field_successful_provider(): array {
+        return [
+            // Test with field 'email' (user exists).
+            ['field' => 'email', 'value' => 'foo1@bar.com', 'exists' => true],
+            // Test with field 'username' (user exists).
+            ['field' => 'username', 'value' => 'testuser1', 'exists' => true],
+            // Test with field 'idnumber' (user exists).
+            ['field' => 'idnumber', 'value' => 'KN-1', 'exists' => true],
+            // Test with field 'email' (user does not exist).
+            ['field' => 'email', 'value' => 'nonexistent@doesnotexist.com', 'exists' => false],
+            // Test with field 'username' (user does not exist).
+            ['field' => 'username', 'value' => 'nonexistentuser99999', 'exists' => false],
+            // Test with field 'idnumber' (user does not exist).
+            ['field' => 'idnumber', 'value' => 'NONEXISTENTID99999', 'exists' => false],
+            // Test without passing the field parameter (should default to email, user exists).
+            ['field' => null, 'value' => 'foo1@bar.com', 'exists' => true],
+            // Test without passing the field parameter (should default to email, user does not exist).
+            ['field' => null, 'value' => 'nonexistent@doesnotexist.com', 'exists' => false],
+        ];
+    }
+
+    /**
+     * Test the check_user_existence_by_field() webservice function with valid parameters.
+     *
+     * @param string|null $field The field parameter (or null to use the default)
+     * @param string|null $value The value to search for (null for the dynamic user ID case)
+     * @param bool $exists Whether the user is expected to exist
+     * @dataProvider check_user_existence_by_field_successful_provider
+     * @covers \enrol_semco\external::check_user_existence_by_field
+     */
+    public function test_check_user_existence_by_field_successful($field, $value, $exists): void {
+        // Create a user.
+        $user = $this->create_user();
+
+        // Call the webservice which we want to test.
+        if ($field === null) {
+            $webservicereturn = external::check_user_existence_by_field($value);
+        } else {
+            $webservicereturn = external::check_user_existence_by_field($value, $field);
+        }
+
+        // Check the webservice return structure.
+        $this->assertNotEmpty($webservicereturn);
+        $this->assertArrayHasKey('userexists', $webservicereturn);
+
+        // Check the webservice return value.
+        $this->assertEquals($exists, $webservicereturn['userexists']);
+    }
+
+    /**
+     * Test the check_user_existence_by_field() webservice function with the checkuserexistenceinvalidfield exception.
+     *
+     * @covers \enrol_semco\external::check_user_existence_by_field
+     */
+    public function test_check_user_existence_by_field_invalidfield_exception(): void {
+        // Expect the specified exception.
+        $this->expectException(moodle_exception::class);
+        $this->expectExceptionMessage(get_string('checkuserexistenceinvalidfield', 'enrol_semco', 'invalidfield'));
+
+        // Call the webservice with an invalid field.
+        external::check_user_existence_by_field('somevalue', 'invalidfield');
+    }
+
     /**
      * The following functions are helper functions for running the tests.
      */

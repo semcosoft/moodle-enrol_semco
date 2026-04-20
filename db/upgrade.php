@@ -318,5 +318,31 @@ function xmldb_enrol_semco_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2023100902, 'enrol', 'semco');
     }
 
+    if ($oldversion < 2024100703) {
+        // Get system context.
+        $systemcontext = context_system::instance();
+
+        // Get the role ID of the SEMCO role.
+        $semcoroleid = $DB->get_field('role', 'id', ['shortname' => ENROL_SEMCO_ROLEANDUSERNAME]);
+
+        // Update the plugin's capabilities. The Moodle core updater would do this himself, but it would do it _after_ processing
+        // this file. To be able to run assign_capability() now, we need to prepone this step ourselves.
+        update_capabilities('enrol_semco');
+
+        // Assign the newly created capability to the SEMCO role.
+        assign_capability('enrol/semco:checkuserexistence', CAP_ALLOW, $semcoroleid, $systemcontext->id);
+
+        // And show a notification about that fact (this also looks fine in the CLI installer).
+        $notification = new \core\output\notification(
+            get_string('updater_2024100703_addcapability', 'enrol_semco'),
+            \core\output\notification::NOTIFY_INFO
+        );
+        $notification->set_show_closebutton(false);
+        echo $OUTPUT->render($notification);
+
+        // Enrol_semco savepoint reached.
+        upgrade_plugin_savepoint(true, 2024100703, 'enrol', 'semco');
+    }
+
     return true;
 }

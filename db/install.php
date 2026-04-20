@@ -101,6 +101,7 @@ function xmldb_enrol_semco_install() {
         assign_capability('enrol/semco:getenrolments', CAP_ALLOW, $semcoroleid, $systemcontext->id);
         assign_capability('enrol/semco:getcoursecompletions', CAP_ALLOW, $semcoroleid, $systemcontext->id);
         assign_capability('enrol/semco:resetcoursecompletion', CAP_ALLOW, $semcoroleid, $systemcontext->id);
+        assign_capability('enrol/semco:checkuserexistence', CAP_ALLOW, $semcoroleid, $systemcontext->id);
         assign_capability('moodle/role:assign', CAP_ALLOW, $semcoroleid, $systemcontext->id);
         assign_capability('moodle/course:useremail', CAP_ALLOW, $semcoroleid, $systemcontext->id);
         assign_capability('moodle/course:view', CAP_ALLOW, $semcoroleid, $systemcontext->id);
