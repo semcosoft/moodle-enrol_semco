@@ -78,6 +78,13 @@ $capabilities = [
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_COURSE,
         ],
+        // Ability to check the existence of a Moodle user by a given field.
+        // By default, this is not allowed to any role archetype as it should just be used by a webservice.
+        // It will be automatically assigned to the SEMCO webservice role in install.php.
+        'enrol/semco:checkuserexistence' => [
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_SYSTEM,
+        ],
         // Ability to view the enrolment report of all SEMCO user enrolments.
         // By default, this is allowed for the manager role.
         'enrol/semco:viewreport' => [
