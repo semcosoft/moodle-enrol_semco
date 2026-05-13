@@ -4,7 +4,7 @@ moodle-enrol_semco
 Changes
 -------
 
-### Unreleased
+### v5.0-r3
 
 * 2026-04-20 - Internal improvement: Add enrol_semco_check_user_existence_by_field webservice as preparation for next SEMCO release.
 * 2026-03-20 - Feature: Add CLI script to re-create and harden the webservice token.
