@@ -62,6 +62,7 @@ $string['tableenrolend'] = 'Enrolment end';
 $string['tableenrolid'] = 'Enrolment ID';
 $string['tableenrolstart'] = 'Enrolment start';
 $string['tableenrolstatus'] = 'Enrolment status';
+$string['tableenrolunrestricted'] = 'Unrestricted';
 $string['tablesemcobookingid'] = 'SEMCO booking ID';
 $string['tableuserid'] = 'Moodle User ID';
 $string['tableusername'] = 'Moodle Username';

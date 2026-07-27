@@ -21,7 +21,7 @@ Automated tests
 ---------------
 
 * The plugin has a good coverage with PHPUnit tests which test all of the plugin's webservices.
-* However, there aren't any Behat tests which test the plugin's user interface (yet).
+* The plugin has a good coverage with Behat tests which test all of the plugin's user stories.
 
 
 Manual tests

@@ -1121,14 +1121,6 @@ class external extends external_api {
             throw new moodle_exception('semcopluginnotenabled', 'enrol_semco');
         }
 
-        // Throw an exception if local_recompletion is not installed (or too old).
-        if (enrol_semco_check_local_recompletion() != true) {
-            throw new moodle_exception('localrecompletionnotinstalled', 'enrol_semco');
-        }
-
-        // Require local_recompletion plugin library.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
-
         // Get the user enrolment associated to the given enrolment ID from the database,
         // throw an exception if it does not exist.
         $userinstance = $DB->get_record('user_enrolments', ['id' => $params['enrolid']]);
@@ -1149,6 +1141,14 @@ class external extends external_api {
 
         // Check that the webservice user has the permission to reset course completions for SEMCO users.
         require_capability('enrol/semco:resetcoursecompletion', $context);
+
+        // Throw an exception if local_recompletion is not installed (or too old).
+        if (enrol_semco_check_local_recompletion() != true) {
+            throw new moodle_exception('localrecompletionnotinstalled', 'enrol_semco');
+        }
+
+        // Require local_recompletion plugin library.
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
 
         // Get the enrolled user from the DB, throw an exception if it does not exist.
         $user = \core\user::get_user($userinstance->userid);

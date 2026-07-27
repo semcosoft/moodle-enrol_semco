@@ -226,6 +226,11 @@ function enrol_semco_roleassign_updatecallback() {
 /**
  * Helper function to check if our companion plugin local_recompletion is installed.
  *
+ * When automated tests are running, the result of this function can be overridden with the $CFG->localrecompletionnotinstalled
+ * and $CFG->localrecompletionforceinstalled switches. This allows the tests to cover the behaviour of this plugin in both
+ * kinds of installations, regardless of the fact if local_recompletion is really present in the test installation or not.
+ * Please note that these switches only control what this function reports, they neither add nor remove the companion plugin.
+ *
  * @return boolean
  */
 function enrol_semco_check_local_recompletion() {
@@ -242,12 +247,18 @@ function enrol_semco_check_local_recompletion() {
 
     // If the check has not been done yet.
     if (!isset($localrecompletioninstalled)) {
-        // If PHPUnit tests are running.
-        if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
+        // If automated tests are running.
+        if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST) || (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)) {
             // If we simulate the plugin to be not installed.
             if (isset($CFG->localrecompletionnotinstalled) && $CFG->localrecompletionnotinstalled == true) {
                 // Return this.
                 return false;
+            }
+
+            // If we simulate the plugin to be installed.
+            if (isset($CFG->localrecompletionforceinstalled) && $CFG->localrecompletionforceinstalled == true) {
+                // Return this.
+                return true;
             }
         }
 
@@ -323,4 +334,23 @@ function enrol_semco_callbackimpl_before_standard_top_of_body_html(&$hook = null
             $reports->add_node($reportnode);
         }
     }
+}
+
+/**
+ * Helper function to get the webservice token which the plugin uses for the SEMCO webservice.
+ * This token is needed on the plugin settings page and in the plugin's Behat tests.
+ *
+ * @return string|false The webservice token or false if no token was found.
+ */
+function enrol_semco_get_webservice_token() {
+    global $DB;
+
+    $sql = 'SELECT et.token
+            FROM {external_tokens} et
+            JOIN {external_services} es ON et.externalserviceid = es.id
+            JOIN {user} u ON et.userid = u.id
+            WHERE u.username = :username AND es.shortname = :serviceshortname';
+    $sqlparams = ['serviceshortname' => ENROL_SEMCO_SERVICENAME, 'username' => ENROL_SEMCO_ROLEANDUSERNAME];
+
+    return $DB->get_field_sql($sql, $sqlparams);
 }
