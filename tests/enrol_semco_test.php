@@ -38,6 +38,11 @@ use moodle_url;
  */
 final class enrol_semco_test extends \advanced_testcase {
     /**
+     * @var \enrol_semco_generator The plugin's data generator.
+     */
+    private \enrol_semco_generator $semcogenerator;
+
+    /**
      * Setup testcase.
      */
     public function setUp(): void {
@@ -51,6 +56,9 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Reset after the test.
         $this->resetAfterTest(true);
+
+        // Get the plugin's data generator.
+        $this->semcogenerator = $this->getDataGenerator()->get_plugin_generator('enrol_semco');
 
         // Get the SEMCO webservice user.
         $semcouser = $DB->get_record('user', ['username' => ENROL_SEMCO_ROLEANDUSERNAME]);
@@ -205,6 +213,79 @@ final class enrol_semco_test extends \advanced_testcase {
     }
 
     /**
+     * Data provider for test_enrol_user_configuredrole.
+     *
+     * @return array
+     */
+    public static function enrol_user_configuredrole_provider(): array {
+        return [
+            // Test the webservice with the 'Non-editing teacher' role being configured.
+            ['roleshortname' => 'teacher'],
+            // Test the webservice with the 'Teacher' role being configured.
+            ['roleshortname' => 'editingteacher'],
+        ];
+    }
+
+    /**
+     * Test that the enrol_user() webservice function enrols the user with the role which is configured
+     * in the enrol_semco/role setting (and not with any hardcoded or default role).
+     *
+     * @param string $roleshortname The shortname of the role which is configured in the enrol_semco/role setting
+     * @dataProvider enrol_user_configuredrole_provider
+     * @covers \enrol_semco\external::enrol_user
+     */
+    public function test_enrol_user_configuredrole($roleshortname): void {
+        global $DB;
+
+        // Create a user and a course.
+        $user = $this->create_user();
+        $course = $this->create_course();
+
+        // Initialize more enrolment data.
+        $semcobookingid = 12345;
+
+        // Get the role which we want to configure from the database.
+        $role = $DB->get_record('role', ['shortname' => $roleshortname], '*', MUST_EXIST);
+
+        // Verify that the role which we want to configure is not the plugin's default role.
+        // Otherwise, this test would not prove anything.
+        $this->assertNotEquals(enrol_semco_get_firststudentroleid(), $role->id);
+
+        // Configure the role in the plugin settings.
+        // Additionally, run the setting's update callback just as the admin settings page would do,
+        // as the SEMCO webservice user has to be allowed to assign the newly configured role.
+        set_config('role', $role->id, 'enrol_semco');
+        enrol_semco_roleassign_updatecallback();
+
+        // Enrol the user in the course with the webservice which we want to test.
+        $webservicereturn = external::enrol_user($user->id, $course->id, $semcobookingid);
+
+        // Check that the enrolment was successful.
+        $this->assertNotEmpty($webservicereturn);
+        $this->assertEmpty($webservicereturn['warnings']);
+
+        // Get the course context from the database.
+        $coursecontextinstances = $DB->get_records('context', ['contextlevel' => CONTEXT_COURSE, 'instanceid' => $course->id]);
+        $this->assertCount(1, $coursecontextinstances);
+
+        // Pick the only context instance.
+        $coursecontextinstance = array_pop($coursecontextinstances);
+
+        // Get the role assignments from the database.
+        $roleassignmeninstances = $DB->get_records(
+            'role_assignments',
+            ['contextid' => $coursecontextinstance->id, 'userid' => $user->id]
+        );
+        $this->assertCount(1, $roleassignmeninstances);
+
+        // Pick the only role assignment instance.
+        $roleassignmeninstance = array_pop($roleassignmeninstances);
+
+        // Check that the user was enrolled with the configured role.
+        $this->assertEquals($role->id, $roleassignmeninstance->roleid);
+    }
+
+    /**
      * Test the enrol_user() webservice function with the usernotexist exception.
      *
      * @covers \enrol_semco\external::enrol_user
@@ -348,10 +429,10 @@ final class enrol_semco_test extends \advanced_testcase {
      * @covers \enrol_semco\external::enrol_user
      */
     public function test_enrol_user_requirerecompletion_successful(): void {
-        global $CFG, $DB;
+        global $DB;
 
-        // Require local_recompletion plugin library.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
+        // Skip this test if local_recompletion is not installed.
+        $this->skip_if_local_recompletion_is_not_installed();
 
         // Create a user and a course.
         $user = $this->create_user();
@@ -363,12 +444,18 @@ final class enrol_semco_test extends \advanced_testcase {
         // Set the recompletion config for this course.
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'recompletiontype';
-        $recompletionconfig['value'] = \local_recompletion_recompletion_form::RECOMPLETION_TYPE_ONDEMAND;
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype('ondemand');
         $DB->insert_record('local_recompletion_config', $recompletionconfig);
 
         // Enrol the user in the course with the webservice which we want to test.
-        // The test will be successfully if no exception is thrown.
-        external::enrol_user($user->id, $course->id, $semcobookingid, null, null, null, 1);
+        $enrolreturn = external::enrol_user($user->id, $course->id, $semcobookingid, null, null, null, 1);
+
+        // Check that the enrolment was really created. Without these assertions, the test would also pass if the webservice
+        // function did not enrol the user at all, as the requirerecompletion parameter would still not have thrown any
+        // exception then.
+        $this->assertGreaterThan(0, $enrolreturn['enrolid']);
+        $this->assertEquals($user->id, $enrolreturn['userid']);
+        $this->assertTrue($DB->record_exists('user_enrolments', ['id' => $enrolreturn['enrolid'], 'userid' => $user->id]));
     }
 
     /**
@@ -377,19 +464,20 @@ final class enrol_semco_test extends \advanced_testcase {
      * @return array
      */
     public static function enrol_user_localrecompletion_exceptions_provider(): array {
-        global $CFG;
-
-        // Require local_recompletion plugin library.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
-
+        // Please note: The recompletion types are handed over as the recompletion type identifiers of the plugin's data
+        // generator and not as the local_recompletion class constants themselves. This is necessary as PHPUnit evaluates
+        // the data providers when it builds the test suite, i.e. even before the tests have the chance to skip themselves
+        // if local_recompletion is not installed at all. Touching the local_recompletion class here would break the whole
+        // test run in such an installation. The tests resolve the identifiers with the data generator's
+        // resolve_recompletiontype() as soon as they know that local_recompletion is there.
         return [
             // Test the localrecompletionnotenabled exception.
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_DISABLED,
+            ['recompletiontype' => 'disabled',
                     'exception' => 'localrecompletionnotenabled'],
             // Test the localrecompletionnotondemand exception.
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_SCHEDULE,
+            ['recompletiontype' => 'schedule',
                     'exception' => 'localrecompletionnotondemand'],
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_PERIOD,
+            ['recompletiontype' => 'period',
                     'exception' => 'localrecompletionnotondemand'],
         ];
     }
@@ -397,14 +485,17 @@ final class enrol_semco_test extends \advanced_testcase {
     /**
      * Test the enrol_user() webservice function with the multiple exceptions.
      *
-     * @param int $recompletiontype The recompletiontype parameter
+     * @param string $recompletiontype The name of the local_recompletion constant for the recompletiontype parameter
      * @param string $exception The exception exception
      *
      * @dataProvider enrol_user_localrecompletion_exceptions_provider
      * @covers \enrol_semco\external::enrol_user
      */
     public function test_enrol_user_localrecompletion_exceptions($recompletiontype, $exception): void {
-        global $CFG, $DB;
+        global $DB;
+
+        // Skip this test if local_recompletion is not installed.
+        $this->skip_if_local_recompletion_is_not_installed();
 
         // Create a user and a course.
         $user = $this->create_user();
@@ -416,7 +507,7 @@ final class enrol_semco_test extends \advanced_testcase {
         // Set the recompletion config for this course.
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'recompletiontype';
-        $recompletionconfig['value'] = $recompletiontype;
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype($recompletiontype);
         $DB->insert_record('local_recompletion_config', $recompletionconfig);
 
         // Expect the specified exception.
@@ -539,6 +630,36 @@ final class enrol_semco_test extends \advanced_testcase {
         $this->expectExceptionMessage(get_string('enrolnouserinstance', 'enrol_semco', $enrolreturn['enrolid']));
 
         // Attempt to unenrol the user again, which should throw the exception.
+        external::unenrol_user($enrolreturn['enrolid']);
+    }
+
+    /**
+     * Test the unenrol_user() webservice function with the usernotexist exception.
+     *
+     * @covers \enrol_semco\external::unenrol_user
+     */
+    public function test_unenrol_user_usernotexist_exception(): void {
+        global $DB;
+
+        // Create a user and a course.
+        $user = $this->create_user();
+        $course = $this->create_course();
+
+        // Initialize more enrolment data.
+        $semcobookingid = 12345;
+
+        // Enrol the user in the course.
+        $enrolreturn = external::enrol_user($user->id, $course->id, $semcobookingid);
+
+        // Remove the user from the database while his enrolment stays in place. This is the state which the enrolment of a
+        // user has after the user record was removed without cleaning up his enrolments.
+        $DB->delete_records('user', ['id' => $user->id]);
+
+        // Expect the specified exception.
+        $this->expectException(moodle_exception::class);
+        $this->expectExceptionMessage(get_string('usernotexist', 'enrol_semco', $user->id));
+
+        // Unenrol the user with the webservice which we want to test, which should throw the exception.
         external::unenrol_user($enrolreturn['enrolid']);
     }
 
@@ -700,6 +821,36 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Edit the enrolment with the webservice which we want to test.
         external::edit_enrolment($enrolmentid);
+    }
+
+    /**
+     * Test the edit_enrolment() webservice function with the usernotexist exception.
+     *
+     * @covers \enrol_semco\external::edit_enrolment
+     */
+    public function test_edit_enrolment_usernotexist_exception(): void {
+        global $DB;
+
+        // Create a user and a course.
+        $user = $this->create_user();
+        $course = $this->create_course();
+
+        // Initialize more enrolment data.
+        $semcobookingid = 12345;
+
+        // Enrol the user in the course.
+        $enrolreturn = external::enrol_user($user->id, $course->id, $semcobookingid);
+
+        // Remove the user from the database while his enrolment stays in place. This is the state which the enrolment of a
+        // user has after the user record was removed without cleaning up his enrolments.
+        $DB->delete_records('user', ['id' => $user->id]);
+
+        // Expect the specified exception.
+        $this->expectException(moodle_exception::class);
+        $this->expectExceptionMessage(get_string('usernotexist', 'enrol_semco', $user->id));
+
+        // Edit the enrolment with the webservice which we want to test, which should throw the exception.
+        external::edit_enrolment($enrolreturn['enrolid'], $semcobookingid);
     }
 
     /**
@@ -1262,11 +1413,20 @@ final class enrol_semco_test extends \advanced_testcase {
      * @covers \enrol_semco\external::reset_course_completion
      */
     public function test_reset_course_completion_successful(): void {
-        global $DB;
+        global $CFG, $DB;
+
+        // Skip this test if local_recompletion is not installed.
+        $this->skip_if_local_recompletion_is_not_installed();
 
         // Create a user and a course.
         $user = $this->create_user();
         $course = $this->create_course();
+
+        // Enable completion globally and within the course as the course has to be completable at all before we are
+        // able to complete it below.
+        $CFG->enablecompletion = true;
+        $course->enablecompletion = COMPLETION_ENABLED;
+        $DB->update_record('course', $course);
 
         // Initialize more enrolment data.
         $semcobookingid = 12345;
@@ -1274,7 +1434,7 @@ final class enrol_semco_test extends \advanced_testcase {
         // Set the recompletion config for this course.
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'recompletiontype';
-        $recompletionconfig['value'] = \local_recompletion_recompletion_form::RECOMPLETION_TYPE_ONDEMAND;
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype('ondemand');
         $DB->insert_record('local_recompletion_config', $recompletionconfig);
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'archivecompletiondata';
@@ -1287,6 +1447,35 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Enrol the user in the course.
         external::enrol_user($user->id, $course->id, $semcobookingid);
+
+        // Create an activity with manual completion tracking in the course.
+        $assign = $this->getDataGenerator()->get_plugin_generator('mod_assign')->create_instance([
+            'course' => $course->id,
+            'completion' => COMPLETION_TRACKING_MANUAL,
+        ]);
+        $cm = get_coursemodule_from_instance('assign', $assign->id);
+
+        // Let the user complete the activity.
+        $completioninfo = new \completion_info(get_course($course->id));
+        $completioninfo->update_state($cm, COMPLETION_COMPLETE, $user->id);
+
+        // Let the user complete the course.
+        $completion = new \completion_completion(['userid' => $user->id, 'course' => $course->id]);
+        $completion->mark_complete(strtotime('today midnight'));
+
+        // Give the user a grade in the course.
+        $gradeitem = \grade_item::fetch_course_item($course->id);
+        $gradeitem->update_final_grade($user->id, 42);
+
+        // Cross-check that the user really has completion and grade data now.
+        // Without this cross-check, the assertions after the reset below would also pass if the user never had any
+        // data which could be reset in the first place.
+        $this->assertTrue($DB->record_exists('course_completions', ['userid' => $user->id, 'course' => $course->id]));
+        $this->assertTrue($DB->record_exists(
+            'course_modules_completion',
+            ['userid' => $user->id, 'coursemoduleid' => $cm->id]
+        ));
+        $this->assertEquals(42, $this->get_final_grade($gradeitem->id, $user->id));
 
         // Get the SEMCO enrolment instances from the database.
         $enrolmentinstances = $DB->get_records('enrol', ['courseid' => $course->id, 'enrol' => 'semco']);
@@ -1312,9 +1501,20 @@ final class enrol_semco_test extends \advanced_testcase {
         $this->assertEquals(true, $webservicereturn['result']);
         $this->assertEmpty($webservicereturn['warnings']);
 
-        // Verify that the completion data has been reset in the database.
-        $completion = $DB->get_record('course_completions', ['userid' => $user->id, 'course' => $course->id]);
-        $this->assertEmpty($completion);
+        // Verify that the course completion has been reset in the database.
+        $this->assertFalse($DB->record_exists('course_completions', ['userid' => $user->id, 'course' => $course->id]));
+
+        // Verify that the activity completion has been reset in the database as well.
+        $this->assertFalse($DB->record_exists(
+            'course_modules_completion',
+            ['userid' => $user->id, 'coursemoduleid' => $cm->id]
+        ));
+
+        // Verify that the user's grade has been deleted as well as we have set the deletegradedata config to true.
+        $this->assertNull($this->get_final_grade($gradeitem->id, $user->id));
+
+        // Verify that nothing has been archived as we have set the archivecompletiondata config to false.
+        $this->assertFalse($DB->record_exists('local_recompletion_cc', ['userid' => $user->id, 'course' => $course->id]));
     }
 
     /**
@@ -1335,12 +1535,16 @@ final class enrol_semco_test extends \advanced_testcase {
     }
 
     /**
-     * Test the reset_course_completion() webservice function with the enrolnoinstance exception.
+     * Test the reset_course_completion() webservice function with the usernotexist exception.
      *
      * @covers \enrol_semco\external::reset_course_completion
      */
-    public function test_reset_course_completion_enrolnoinstance_exception(): void {
+    public function test_reset_course_completion_usernotexist_exception(): void {
         global $DB;
+
+        // Skip this test if local_recompletion is not installed.
+        // The webservice function checks the presence of local_recompletion before it looks up the enrolled user.
+        $this->skip_if_local_recompletion_is_not_installed();
 
         // Create a user and a course.
         $user = $this->create_user();
@@ -1352,7 +1556,46 @@ final class enrol_semco_test extends \advanced_testcase {
         // Set the recompletion config for this course.
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'recompletiontype';
-        $recompletionconfig['value'] = \local_recompletion_recompletion_form::RECOMPLETION_TYPE_ONDEMAND;
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype('ondemand');
+        $DB->insert_record('local_recompletion_config', $recompletionconfig);
+
+        // Enrol the user in the course.
+        $enrolreturn = external::enrol_user($user->id, $course->id, $semcobookingid);
+
+        // Remove the user from the database while his enrolment stays in place. This is the state which the enrolment of a
+        // user has after the user record was removed without cleaning up his enrolments.
+        $DB->delete_records('user', ['id' => $user->id]);
+
+        // Expect the specified exception.
+        $this->expectException(moodle_exception::class);
+        $this->expectExceptionMessage(get_string('usernotexist', 'enrol_semco', $user->id));
+
+        // Reset the completion with the webservice which we want to test, which should throw the exception.
+        external::reset_course_completion($enrolreturn['enrolid']);
+    }
+
+    /**
+     * Test the reset_course_completion() webservice function with the enrolnoinstance exception.
+     *
+     * @covers \enrol_semco\external::reset_course_completion
+     */
+    public function test_reset_course_completion_enrolnoinstance_exception(): void {
+        global $DB;
+
+        // Skip this test if local_recompletion is not installed.
+        $this->skip_if_local_recompletion_is_not_installed();
+
+        // Create a user and a course.
+        $user = $this->create_user();
+        $course = $this->create_course();
+
+        // Initialize more enrolment data.
+        $semcobookingid = 12345;
+
+        // Set the recompletion config for this course.
+        $recompletionconfig['course'] = $course->id;
+        $recompletionconfig['name'] = 'recompletiontype';
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype('ondemand');
         $DB->insert_record('local_recompletion_config', $recompletionconfig);
 
         // Enrol the user in the course.
@@ -1381,19 +1624,16 @@ final class enrol_semco_test extends \advanced_testcase {
      * @return array
      */
     public static function reset_course_completion_localrecompletion_exceptions_provider(): array {
-        global $CFG;
-
-        // Require local_recompletion plugin library.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
-
+        // Please note: The recompletion types are handed over as the recompletion type identifiers of the plugin's data
+        // generator for the same reasons as in enrol_user_localrecompletion_exceptions_provider().
         return [
             // Test the localrecompletionnotenabled exception.
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_DISABLED,
+            ['recompletiontype' => 'disabled',
                     'exception' => 'localrecompletionnotenabled'],
             // Test the localrecompletionnotondemand exception.
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_SCHEDULE,
+            ['recompletiontype' => 'schedule',
                     'exception' => 'localrecompletionnotondemand'],
-            ['recompletiontype' => \local_recompletion_recompletion_form::RECOMPLETION_TYPE_PERIOD,
+            ['recompletiontype' => 'period',
                     'exception' => 'localrecompletionnotondemand'],
         ];
     }
@@ -1401,14 +1641,17 @@ final class enrol_semco_test extends \advanced_testcase {
     /**
      * Test the reset_course_completion() webservice function with multiple exceptions.
      *
-     * @param ing $recompletiontype The recompletiontype parameter
+     * @param string $recompletiontype The name of the local_recompletion constant for the recompletiontype parameter
      * @param string $exception The exception exception
      *
      * @dataProvider reset_course_completion_localrecompletion_exceptions_provider
      * @covers \enrol_semco\external::enrol_user
      */
     public function test_reset_course_completion_localrecompletion_exceptions($recompletiontype, $exception): void {
-        global $CFG, $DB;
+        global $DB;
+
+        // Skip this test if local_recompletion is not installed.
+        $this->skip_if_local_recompletion_is_not_installed();
 
         // Create a user and a course.
         $user = $this->create_user();
@@ -1420,7 +1663,7 @@ final class enrol_semco_test extends \advanced_testcase {
         // Set the recompletion config for this course.
         $recompletionconfig['course'] = $course->id;
         $recompletionconfig['name'] = 'recompletiontype';
-        $recompletionconfig['value'] = $recompletiontype;
+        $recompletionconfig['value'] = $this->semcogenerator->resolve_recompletiontype($recompletiontype);
         $DB->insert_record('local_recompletion_config', $recompletionconfig);
 
         // Enrol the user in the course.
@@ -1585,6 +1828,133 @@ final class enrol_semco_test extends \advanced_testcase {
         external::check_user_existence_by_field('somevalue', 'invalidfield');
     }
 
+    /*
+     * In the following test, all webservices will be tested the way Moodle really runs them for an incoming webservice
+     * request from SEMCO.
+     */
+
+    /**
+     * Test that all webservice functions of this plugin work when they are called through the Moodle webservice layer.
+     *
+     * All other tests in this class call the webservice functions directly. This covers the functions' own logic, but it
+     * skips the layer which Moodle puts around them when SEMCO calls them for real. Especially, it never runs
+     * external_api::clean_returnvalue() which validates the function's result against the structure which the function
+     * declares in its *_returns() definition. A return structure which does not match what the function really returns
+     * would therefore go unnoticed in the whole test suite and would only show up when SEMCO calls the function in
+     * production.
+     *
+     * This test closes that gap. It calls each function which the plugin declares in db/services.php through
+     * external_api::call_external_function(), i.e. exactly the way Moodle does it for an incoming webservice request.
+     * That call resolves the function name against db/services.php, validates the given arguments against the
+     * *_parameters() definition, runs the function and finally validates its result against the *_returns() definition.
+     *
+     * All functions are deliberately covered within this single test and in a fixed order as they build on each other:
+     * The enrolment which enrol_user() creates is the enrolment which the following functions read, edit, reset and
+     * finally unenrol again.
+     *
+     * @covers \enrol_semco\external
+     */
+    public function test_webservice_functions_through_the_webservice_layer(): void {
+        global $CFG, $DB;
+
+        // Moodle's webservice layer verifies the session key of the calling user. Within a PHPUnit test, there is no real
+        // request which could carry it, so we have to provide it ourselves (just as the Moodle core tests do).
+        $_POST['sesskey'] = sesskey();
+
+        // Compose a helper which calls a webservice function through the Moodle webservice layer.
+        // The layer catches every exception and reports it within its result array instead of throwing it, so we have to
+        // evaluate the outcome ourselves. The exception details are added to the failure message as they name the reason
+        // why the call did not work out. Especially, a result which does not match the function's *_returns() definition
+        // is reported as an 'invalid_response_exception' here.
+        $callwebservicefunction = function (string $function, array $args) {
+            $result = \core_external\external_api::call_external_function($function, $args);
+            $this->assertFalse(
+                $result['error'],
+                'The webservice function ' . $function . ' did not succeed: ' .
+                        ($result['exception']->message ?? '') . ' ' . ($result['exception']->debuginfo ?? '')
+            );
+
+            return $result['data'];
+        };
+
+        // Create a user and a course.
+        $user = $this->create_user();
+        $course = $this->create_course();
+
+        // Initialize more enrolment data.
+        $semcobookingid = 12345;
+        $editedsemcobookingid = 12346;
+
+        // If the companion plugin local_recompletion is installed, enable the on-demand recompletion in the course.
+        // This is the precondition for the reset_course_completion() function which is covered further down.
+        // Besides the recompletion type, we have to store those settings which local_recompletion reads without checking
+        // whether they exist. Its own settings page always writes the complete set of settings, so a course which was
+        // configured through the user interface never misses them.
+        $localrecompletioninstalled = enrol_semco_check_local_recompletion();
+        if ($localrecompletioninstalled == true) {
+            require_once($CFG->dirroot . '/local/recompletion/locallib.php');
+            $recompletionconfig = [
+                'recompletiontype' => $this->semcogenerator->resolve_recompletiontype('ondemand'),
+                'archivecompletiondata' => 0,
+                'deletegradedata' => 0,
+            ];
+            foreach ($recompletionconfig as $name => $value) {
+                $DB->insert_record(
+                    'local_recompletion_config',
+                    ['course' => $course->id, 'name' => $name, 'value' => $value]
+                );
+            }
+        }
+
+        // Check the existence of the user.
+        $webservicereturn = $callwebservicefunction(
+            'enrol_semco_check_user_existence_by_field',
+            ['value' => $user->email]
+        );
+        $this->assertTrue($webservicereturn['userexists']);
+
+        // Enrol the user in the course.
+        $webservicereturn = $callwebservicefunction(
+            'enrol_semco_enrol_user',
+            ['userid' => $user->id, 'courseid' => $course->id, 'semcobookingid' => $semcobookingid]
+        );
+        $this->assertGreaterThan(0, $webservicereturn['enrolid']);
+
+        // Remember the enrolment ID for the following calls.
+        $enrolid = $webservicereturn['enrolid'];
+
+        // Get the enrolments of the course.
+        $webservicereturn = $callwebservicefunction('enrol_semco_get_enrolments', ['courseid' => $course->id]);
+        $this->assertCount(1, $webservicereturn);
+
+        // Edit the enrolment.
+        $webservicereturn = $callwebservicefunction(
+            'enrol_semco_edit_enrolment',
+            ['enrolid' => $enrolid, 'semcobookingid' => $editedsemcobookingid]
+        );
+        $this->assertTrue($webservicereturn['result']);
+
+        // Get the course completion of the enrolment.
+        $webservicereturn = $callwebservicefunction(
+            'enrol_semco_get_course_completions',
+            ['enrolmentids' => [$enrolid]]
+        );
+        $this->assertCount(1, $webservicereturn);
+
+        // Reset the course completion of the enrolment.
+        // This is the only function which cannot be covered in any installation as it needs the companion plugin
+        // local_recompletion. All other functions of this plugin work without any companion plugin.
+        if ($localrecompletioninstalled == true) {
+            $webservicereturn = $callwebservicefunction('enrol_semco_reset_course_completion', ['enrolid' => $enrolid]);
+            $this->assertTrue($webservicereturn['result']);
+        }
+
+        // Unenrol the user from the course. This is done at the very end as it removes the enrolment which the calls
+        // above have worked with.
+        $webservicereturn = $callwebservicefunction('enrol_semco_unenrol_user', ['enrolid' => $enrolid]);
+        $this->assertTrue($webservicereturn['result']);
+    }
+
     /**
      * The following functions are helper functions for running the tests.
      */
@@ -1630,5 +2000,53 @@ final class enrol_semco_test extends \advanced_testcase {
 
         // Return the course.
         return $course;
+    }
+
+    /**
+     * Get the final grade which a user has in a particular grade item.
+     *
+     * The grade is read directly from the database as we are interested in the raw state of the grade data and not in
+     * any grade which Moodle might calculate on the fly. If the user does not have a grade (anymore), null is returned.
+     * This covers both states which a deleted grade can have, i.e. a completely removed grade record as well as a
+     * remaining grade record without a final grade.
+     *
+     * @param int $gradeitemid The grade item ID.
+     * @param int $userid The user ID.
+     * @return float|null The final grade or null if the user does not have a grade.
+     */
+    private function get_final_grade(int $gradeitemid, int $userid): ?float {
+        global $DB;
+
+        // Get the final grade from the database.
+        $finalgrade = $DB->get_field('grade_grades', 'finalgrade', ['itemid' => $gradeitemid, 'userid' => $userid]);
+
+        // Return the final grade, or null if there isn't any.
+        if ($finalgrade === false || $finalgrade === null) {
+            return null;
+        }
+        return (float) $finalgrade;
+    }
+
+    /**
+     * Skip the running test if the companion plugin local_recompletion is not installed.
+     *
+     * This plugin has only a soft dependency to local_recompletion, i.e. Moodle admins are free to run this plugin
+     * without local_recompletion being installed. The tests which cover the interaction of the two plugins can't do
+     * their job in such an installation, so they call this helper first and are skipped instead of failing.
+     * Additionally, the helper requires the local_recompletion plugin library which these tests need anyway.
+     *
+     * @return void
+     */
+    private function skip_if_local_recompletion_is_not_installed(): void {
+        global $CFG;
+
+        // Skip the test if local_recompletion is not installed (or too old).
+        if (enrol_semco_check_local_recompletion() != true) {
+            $this->markTestSkipped('The local_recompletion plugin is not installed, ' .
+                    'so the interaction between enrol_semco and local_recompletion cannot be tested.');
+        }
+
+        // Require local_recompletion plugin library.
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
     }
 }

@@ -4,6 +4,16 @@ moodle-enrol_semco
 Changes
 -------
 
+### Unreleased
+
+* 2026-07-24 - Internal change: The webservice enrol_semco_reset_course_completion now checks the caller's capability before it checks the presence of local_recompletion.
+* 2026-07-24 - Tests: Improve the PHPUnit test suite and verify that tests which cover the interaction with local_recompletion are skipped gracefully if local_recompletion is not installed.
+* 2026-07-24 - Documentation: Complete the list of capabilities in README.md and add additional notes to the capability list.
+* 2026-07-24 - Improvement: Declare the risk bitmasks of the plugin's webservice capabilities
+* 2026-07-24 - Bugfix: The enrolment report showed the epoch start (01-01-1970) for unrestricted enrolment starts / ends
+* 2026-07-24 - Tests: Add PHPUnit test for Privacy API
+* 2026-07-24 - Tests: Add a suite of Behat tests which cover the plugin's functionality
+
 ### v5.1-r2
 
 * 2026-04-20 - Internal improvement: Add enrol_semco_check_user_existence_by_field webservice as preparation for next SEMCO release.
