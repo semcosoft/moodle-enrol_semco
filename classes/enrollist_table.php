@@ -53,6 +53,10 @@ class enrollist_table extends \core_table\sql_table {
 
         parent::__construct($uniqueid);
 
+        // Set the table's HTML ID attribute. The unique ID is only used for the table's URL parameters and does not end up
+        // in the markup, but a stable ID makes the table addressable for CSS, JS and acceptance tests.
+        $this->set_attribute('id', $uniqueid);
+
         // Define base URL.
         $this->define_baseurl($CFG->wwwroot . '/enrol/semco/enrolreport.php');
 
@@ -146,12 +150,22 @@ class enrollist_table extends \core_table\sql_table {
         }
 
         // Inject enrolstart column.
+        // A value of 0 means that the enrolment does not have a start date, so we show a dedicated label instead of the
+        // (misleading) Unix epoch date which userdate() would return for the value 0.
         if ($column === 'enrolstart') {
+            if (empty($row->enrolstart)) {
+                return get_string('tableenrolunrestricted', 'enrol_semco');
+            }
             return userdate($row->enrolstart, get_string('strftimedatetime'));
         }
 
         // Inject enrolend column.
+        // A value of 0 means that the enrolment does not have an end date, so we show a dedicated label instead of the
+        // (misleading) Unix epoch date which userdate() would return for the value 0.
         if ($column === 'enrolend') {
+            if (empty($row->enrolend)) {
+                return get_string('tableenrolunrestricted', 'enrol_semco');
+            }
             return userdate($row->enrolend, get_string('strftimedatetime'));
         }
 

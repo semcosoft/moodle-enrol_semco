@@ -54,13 +54,7 @@ if ($ADMIN->fulltree) {
         $settings->add($setting);
 
         // Get the webservice token.
-        $sql = 'SELECT et.token
-                FROM {external_tokens} et
-                JOIN {external_services} es ON et.externalserviceid = es.id
-                JOIN {user} u ON et.userid = u.id
-                WHERE u.username = :username AND es.shortname = :serviceshortname';
-        $sqlparams = ['serviceshortname' => ENROL_SEMCO_SERVICENAME, 'username' => ENROL_SEMCO_ROLEANDUSERNAME];
-        $webservicetoken = $DB->get_field_sql($sql, $sqlparams);
+        $webservicetoken = enrol_semco_get_webservice_token();
 
         // If a token was found.
         if ($webservicetoken != false) {
