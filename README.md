@@ -124,7 +124,9 @@ The other side of this connection is documented by SEMCO on https://www.semcosof
 Capabilities
 ------------
 
-This plugin also introduces these additional capabilities:
+This plugin also introduces these additional capabilities.
+
+All of them except the last one, enrol/semco:viewreport, are webservice capabilities which are only there to let SEMCO do its job. Please see the important note below the list before you grant any of them to a role.
 
 ### enrol/semco:usewebservice
 
@@ -146,19 +148,32 @@ This capability controls the ability to edit an existing SEMCO user enrolment in
 
 This capability controls the ability to get the existing SEMCO user enrolments in a course.
 
+### enrol/semco:getcoursecompletions
+
+This capability controls the ability to get the course completions for given SEMCO user enrolments.
+
 ### enrol/semco:resetcoursecompletion
 
 This capability controls the ability to reset the course completion for a given SEMCO user enrolment.
 
-### Please note
+### enrol/semco:checkuserexistence
 
-By default, these capabilities are not allowed to any role archetype as they should just be used by a webservice.
-They will be automatically assigned to the 'SEMCO webservice' role during the plugin installation.
+This capability controls the ability to check the existence of a Moodle user by a given field.
 
 ### enrol/semco:viewreport
 
 This capability controls the ability to view the enrolment report of all SEMCO user enrolments.
-In contrast to the previous capabilities, this capability is allowed for the manager role by default.
+
+In contrast to the webservice capabilities above, this capability is allowed for the manager role by default.
+
+### Important note about the webservice capabilities
+
+This note applies to every capability in the list above except enrol/semco:viewreport.
+
+By default, these capabilities are not allowed to any role archetype as they should just be used by a webservice.
+They will be automatically assigned to the 'SEMCO webservice' role during the plugin installation.
+
+These capabilities should not be granted to any role which is used by humans in the Moodle GUI. Furthermore, there is no user interface in Moodle which makes use of them as all of those capabilities only become effective in combination with a webservice token for the 'SEMCO' service.
 
 
 Scheduled Tasks
