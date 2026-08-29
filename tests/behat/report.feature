@@ -97,6 +97,53 @@ Feature: SEMCO enrolment report
       | student2        | Course 1    | BOOK-0002        |
       | student1        | Course 2    | BOOK-0003        |
 
+  Scenario: The report shows the course completion status of each enrolment
+    # Course 3 is added with course completion enabled, while Course 2 from the background has it disabled.
+    # Within Course 3, student1 and student3 have completed the course and student2 has not. Only student3 has been
+    # graded, which makes him the one enrolment which shows a real course completion grade.
+    Given the following "users" exist:
+      | username | firstname | lastname | email                |
+      | student3 | Carol     | Cherry   | student3@example.com |
+    And the following "courses" exist:
+      | fullname | shortname | format | enablecompletion |
+      | Course 3 | C3        | topics | 1                |
+    And the following "activities" exist:
+      | activity | course | name        | idnumber | grade |
+      | assign   | C3     | Assignment1 | a1       | 100   |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C3     | BOOK-0001      |
+      | student2 | C3     | BOOK-0002      |
+      | student1 | C2     | BOOK-0003      |
+      | student3 | C3     | BOOK-0004      |
+    And the following "enrol_semco > completions" exist:
+      | user     | course | timecompleted    |
+      | student1 | C3     | ##1 March 2026## |
+      | student3 | C3     | ##1 April 2026## |
+    # The grade is given in the course's only activity, from where it is aggregated into the course total. The course
+    # total is what the report shows as the course completion grade.
+    And the following "grade grades" exist:
+      | gradeitem   | user     | grade |
+      | Assignment1 | student3 | 82    |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The status column shows the same three states which the enrol_semco_get_course_completions webservice reports: a
+    # course without course completion cannot be completed at all, while a course with course completion is either
+    # completed or not completed for the enrolled user. The date column shows the completion date of a completed course
+    # and a placeholder otherwise. The grade column shows the course total of a completed course, but only if the user
+    # has been graded at all - student1 has completed the course without ever being graded.
+    Then the following should exist in the "enrolsemco_enrolreport" table:
+      | Moodle Username | Course name | SEMCO booking ID | Course completion status  | Course completion date               | Course completion grade |
+      | student1        | Course 3    | BOOK-0001        | Completed                 | ##1 March 2026##%d %B %Y, %I:%M %p## | —                       |
+      | student2        | Course 3    | BOOK-0002        | Not completed             | —                                    | —                       |
+      | student1        | Course 2    | BOOK-0003        | Completion is not enabled | —                                    | —                       |
+      | student3        | Course 3    | BOOK-0004        | Completed                 | ##1 April 2026##%d %B %Y, %I:%M %p## | 82.00                   |
+    # Sorting by the column groups the enrolments by their completion status. This especially verifies that the status is
+    # sorted as a status and not by the underlying course completion time, which would not be able to tell the two states
+    # apart which do not have a completion time.
+    When I click on "Course completion status" "link"
+    Then "BOOK-0003" "text" should appear before "BOOK-0002" "text"
+    And "BOOK-0002" "text" should appear before "BOOK-0001" "text"
+
   Scenario: The "View course profile" button opens the enrolled user's profile within the course
     Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
