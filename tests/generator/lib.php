@@ -215,6 +215,47 @@ class enrol_semco_generator extends component_generator_base {
     }
 
     /**
+     * Mark a course as completed for a user.
+     *
+     * In real life, a course completion is written by the course completion cron task once the user has met the course's
+     * completion criteria. As running that task within a test would require a full set of completion criteria to be
+     * configured first, this helper writes the completion record directly through the core completion API instead.
+     * Moodle core does not offer any way to do this in Behat: its completion data generator only creates the course
+     * defaults for activity completion, and there is no step definition which completes a course either.
+     *
+     * This shortcut is meant for tests in which a completed course is nothing but a precondition, e.g. for the enrolment
+     * report which just has to show the course completion status. A test which covers the course completion itself has
+     * to take the long way instead, i.e. configure the course completion criteria, let the user meet them and run the
+     * core\task\completion_regular_task scheduled task (see recompletion.feature for an example). Only that way, a real
+     * course completion with all its criteria records is built up.
+     *
+     * Please note that the course itself must have course completion enabled, otherwise the written completion record
+     * would never be shown anywhere.
+     *
+     * @param array $data The completion data. The keys 'userid' and 'courseid' are required.
+     *                    The key 'timecompleted' is optional and defaults to the current time.
+     * @return void
+     */
+    public function create_completion(array $data): void {
+        global $CFG;
+
+        // Require completion library.
+        require_once($CFG->libdir . '/completionlib.php');
+
+        // Throw an exception if a required field is missing.
+        foreach (['userid', 'courseid'] as $requiredfield) {
+            if (!isset($data[$requiredfield])) {
+                throw new coding_exception('The field \'' . $requiredfield .
+                        '\' is required when creating a course completion.');
+            }
+        }
+
+        // Write the course completion record.
+        $completion = new completion_completion(['course' => $data['courseid'], 'userid' => $data['userid']]);
+        $completion->mark_complete(isset($data['timecompleted']) ? (int) $data['timecompleted'] : null);
+    }
+
+    /**
      * Assign or revoke a single capability of the SEMCO webservice role.
      *
      * The SEMCO webservice role is created during the plugin installation and carries all capabilities which the SEMCO
