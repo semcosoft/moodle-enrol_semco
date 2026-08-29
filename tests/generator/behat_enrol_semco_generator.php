@@ -45,6 +45,12 @@ class behat_enrol_semco_generator extends behat_generator_base {
                 'required' => ['user', 'course', 'semcobookingid'],
                 'switchids' => ['user' => 'userid', 'course' => 'courseid'],
             ],
+            'completions' => [
+                'singular' => 'completion',
+                'datagenerator' => 'completion',
+                'required' => ['user', 'course'],
+                'switchids' => ['user' => 'userid', 'course' => 'courseid'],
+            ],
             'users' => [
                 'singular' => 'user',
                 'datagenerator' => 'semcouser',
