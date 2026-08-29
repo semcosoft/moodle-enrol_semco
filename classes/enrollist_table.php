@@ -98,6 +98,13 @@ class enrollist_table extends \core_table\sql_table {
         // Set the table columns.
         $this->define_columns($tablecolumns);
 
+        // Prevent column wrapping.
+        // This is applied to the header cells and to the body cells alike. The course column re-enables wrapping for its
+        // body cells in col_course(), so that its header still stays on a single line.
+        foreach ($tablecolumns as $tablecolumn) {
+            $this->column_class($tablecolumn, 'text-nowrap');
+        }
+
         // Allow table sorting.
         $this->sortable(true, 'id', SORT_ASC);
         $this->no_sorting('actions');
@@ -125,6 +132,28 @@ class enrollist_table extends \core_table\sql_table {
         }
         // Set the table headers.
         $this->define_headers($tableheaders);
+    }
+
+    /**
+     * Override the col_course function to allow the course name to wrap within a restricted width.
+     *
+     * @param stdClass $row The submission row.
+     *
+     * @return string The cell content.
+     */
+    public function col_course($row) {
+        // If the table is downloaded, return the plain course name as the downloaded files must not contain any markup.
+        if ($this->is_downloading()) {
+            return $row->course;
+        }
+
+        // The course column carries the text-nowrap class like all other columns to keep its header on a single line.
+        // Course names can become arbitrarily long, though, so wrapping is re-enabled on an element around the cell
+        // content and this element is restricted to a maximum width.
+        // The overflow-wrap property makes sure that the maximum width also holds for course names which consist of a
+        // single long word without any spaces to break at.
+        $style = 'white-space: normal; min-width: 200px; max-width: 300px; overflow-wrap: break-word;';
+        return \html_writer::div($row->course, '', ['style' => $style]);
     }
 
     /**
