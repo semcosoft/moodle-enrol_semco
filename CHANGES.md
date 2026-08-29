@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-08-29 - Improvement: Improve the column width of the SEMCO enrolment report table
 * 2026-07-24 - Internal change: The webservice enrol_semco_reset_course_completion now checks the caller's capability before it checks the presence of local_recompletion.
 * 2026-07-24 - Tests: Improve the PHPUnit test suite and verify that tests which cover the interaction with local_recompletion are skipped gracefully if local_recompletion is not installed.
 * 2026-07-24 - Documentation: Complete the list of capabilities in README.md and add additional notes to the capability list.
