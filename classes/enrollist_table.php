@@ -146,8 +146,33 @@ class enrollist_table extends \core_table\sql_table {
             return 'u.' . $namefield . ' AS ' . $namefield;
         }, \core_user\fields::get_name_fields()));
 
+        // Compose the SQL expressions which select the SEMCO user profile fields.
+        // Every user profile field value lives in its own user_info_data row, so every field which the report shows needs
+        // a join of its own. The fields are addressed by their shortname as their IDs differ from installation to
+        // installation. The subqueries which look up these IDs do not reference the outer query, so the database can
+        // evaluate each of them once instead of once per row.
+        $sqlparams = [];
+        $userfieldselects = [];
+        $userfieldjoins = '';
+        $userfieldindex = 0;
+        foreach (enrol_semco_get_report_userfieldcolumns() as $userfieldcolumn => $userfieldshortname) {
+            $dataalias = 'uid' . $userfieldindex;
+            $fieldalias = 'uif' . $userfieldindex;
+            $shortnameparam = 'uifshortname' . $userfieldindex;
+            $userfieldselects[] = $dataalias . '.data AS ' . $userfieldcolumn;
+            $userfieldjoins .= '
+                LEFT JOIN {user_info_data} ' . $dataalias . ' ON ' . $dataalias . '.userid = u.id
+                        AND ' . $dataalias . '.fieldid = (
+                            SELECT ' . $fieldalias . '.id FROM {user_info_field} ' . $fieldalias . '
+                            WHERE ' . $fieldalias . '.shortname = :' . $shortnameparam . '
+                        )';
+            $sqlparams[$shortnameparam] = $userfieldshortname;
+            $userfieldindex++;
+        }
+        $userfieldssql = implode(', ', $userfieldselects);
+
         // Set the sql for the table (putting enrolid as first parameter to make it unique).
-        $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, uid.data AS semcouserid, u.username AS username,
+        $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, ' . $userfieldssql . ', u.username AS username,
                 ' . $namefieldssql . ', u.email AS email, u.suspended AS suspended,
                 e.courseid AS courseid, c.fullname AS course, e.customchar1 AS semcobookingid,
                 ue.timestart AS enrolstart, ue.timeend AS enrolend, ue.status AS enrolstatus,
@@ -159,15 +184,11 @@ class enrollist_table extends \core_table\sql_table {
                 JOIN {course} c ON e.courseid = c.id
                 LEFT JOIN {course_completions} cc ON cc.course = c.id AND cc.userid = u.id
                 LEFT JOIN {grade_items} gi ON gi.courseid = c.id AND gi.itemtype = :gradeitemtype
-                LEFT JOIN {grade_grades} gg ON gg.itemid = gi.id AND gg.userid = u.id
-                LEFT JOIN {user_info_data} uid ON uid.userid = u.id AND uid.fieldid = (
-                    SELECT uif.id FROM {user_info_field} uif WHERE uif.shortname = :uifshortname
-                )';
+                LEFT JOIN {grade_grades} gg ON gg.itemid = gi.id AND gg.userid = u.id' . $userfieldjoins;
         $sqlwhere = 'u.deleted = :deleted AND e.enrol = :enrol';
         $sqlparams['deleted'] = 0;
         $sqlparams['enrol'] = 'semco';
         $sqlparams['gradeitemtype'] = 'course';
-        $sqlparams['uifshortname'] = ENROL_SEMCO_USERFIELD1NAME;
         $this->set_sql($sqlfields, $sqlfrom, $sqlwhere, $sqlparams);
 
         // Define the table columns with their headers, in the order in which the report shows them by default.
@@ -183,6 +204,10 @@ class enrollist_table extends \core_table\sql_table {
                 'moodleuserid' => get_string('tableuserid', 'enrol_semco'),
                 'username' => get_string('tableusername', 'enrol_semco'),
                 'semcouserid' => get_string('installer_userfield1fullname', 'enrol_semco'),
+                'semcousercompany' => get_string('installer_userfield2fullname', 'enrol_semco'),
+                'semcouserbirthday' => get_string('installer_userfield3fullname', 'enrol_semco'),
+                'semcouserplaceofbirth' => get_string('installer_userfield4fullname', 'enrol_semco'),
+                'semcotenantshortname' => get_string('installer_userfield5fullname', 'enrol_semco'),
                 'semcobookingid' => get_string('tablesemcobookingid', 'enrol_semco'),
                 'enrolid' => get_string('tableenrolid', 'enrol_semco'),
                 'courseid' => get_string('tablecourseid', 'enrol_semco'),
