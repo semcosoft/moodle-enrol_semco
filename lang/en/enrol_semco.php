@@ -56,6 +56,7 @@ $string['settings_wwwrootinfofound'] = 'The Moodle base URL for the SEMCO webser
 // Enrolment report.
 $string['reportpagetitle'] = 'SEMCO enrolments';
 $string['emptytable'] = 'There are not any SEMCO enrolments yet in this Moodle instance.';
+$string['emptytablefiltered'] = 'There are not any SEMCO enrolments which match the selected initials.';
 $string['tablecoursecompletiondate'] = 'Course completion date';
 $string['tablecoursecompletiongrade'] = 'Course completion grade';
 $string['tablecoursecompletionstatus'] = 'Course completion status';

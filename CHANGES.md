@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-08-30 - Improvement: Merge the 'First name' and 'Last name' columns of the SEMCO enrolment report table into a single 'Full name' column and add an initials filter bar to the table.
 * 2026-08-29 - Improvement: Add course completion status, date and grade columns to the SEMCO enrolment report table
 * 2026-08-29 - Improvement: Improve the column width of the SEMCO enrolment report table
 * 2026-07-24 - Internal change: The webservice enrol_semco_reset_course_completion now checks the caller's capability before it checks the presence of local_recompletion.
