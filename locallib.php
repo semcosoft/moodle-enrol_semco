@@ -35,6 +35,7 @@ define('ENROL_SEMCO_GET_COURSE_COMPLETIONS_MAXREQUEST', 100);
 define('ENROL_SEMCO_COURSERESETRESULT_SUCCESS', 1);
 define('ENROL_SEMCO_COURSERESETRESULT_SKIPPED', -1);
 define('ENROL_SEMCO_COURSERESETRESULT_FAILED', -2);
+define('ENROL_SEMCO_REPORT_SORTINGCOLUMN_DEFAULT', 'lastname');
 
 /**
  * Helper function to get the first student archetype role id.
@@ -353,4 +354,53 @@ function enrol_semco_get_webservice_token() {
     $sqlparams = ['serviceshortname' => ENROL_SEMCO_SERVICENAME, 'username' => ENROL_SEMCO_ROLEANDUSERNAME];
 
     return $DB->get_field_sql($sql, $sqlparams);
+}
+
+/**
+ * Helper function to get the report columns which can be picked as the enrolment report's initial sorting column.
+ *
+ * The array is keyed by the value which the 'reportinitialsortingcolumn' admin setting stores and holds the label of
+ * the report column as value.
+ *
+ * These keys are not necessarily report column names: The report shows the user's first name and the user's last name
+ * in a single full name column, but the admin can still pick either of the two names to sort the report by, just as the
+ * report table itself offers a sort link for each of the two names.
+ *
+ * @return array The initial sorting column options, keyed by the stored setting value.
+ */
+function enrol_semco_get_report_sortingcolumns() {
+    return [
+            'lastname' => get_string('lastname'),
+            'firstname' => get_string('firstname'),
+            'email' => get_string('email'),
+            'moodleuserid' => get_string('tableuserid', 'enrol_semco'),
+            'username' => get_string('tableusername', 'enrol_semco'),
+            'semcouserid' => get_string('installer_userfield1fullname', 'enrol_semco'),
+            'semcobookingid' => get_string('tablesemcobookingid', 'enrol_semco'),
+    ];
+}
+
+/**
+ * Helper function to get the enrolment report columns which the admin can show or hide with the 'reportoptionalcolumns'
+ * admin setting.
+ *
+ * These are all report columns except the ones which enrol_semco_get_report_sortingcolumns() offers and except the
+ * actions column: A column which the report can be sorted by has to be there to be sorted at all, and the actions
+ * column is what makes the report actionable in the first place.
+ *
+ * @return array The optional report columns, keyed by the report column name.
+ */
+function enrol_semco_get_report_optionalcolumns() {
+    return [
+            'enrolid' => get_string('tableenrolid', 'enrol_semco'),
+            'courseid' => get_string('tablecourseid', 'enrol_semco'),
+            'course' => get_string('tablecoursename', 'enrol_semco'),
+            'enrolstart' => get_string('tableenrolstart', 'enrol_semco'),
+            'enrolend' => get_string('tableenrolend', 'enrol_semco'),
+            'enrolstatus' => get_string('tableenrolstatus', 'enrol_semco'),
+            'coursecompletionstatus' => get_string('tablecoursecompletionstatus', 'enrol_semco'),
+            'coursecompletiondate' => get_string('tablecoursecompletiondate', 'enrol_semco'),
+            'coursecompletiongrade' => get_string('tablecoursecompletiongrade', 'enrol_semco'),
+            'suspended' => get_string('tableuserstatus', 'enrol_semco'),
+    ];
 }

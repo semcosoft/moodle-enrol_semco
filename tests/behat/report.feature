@@ -5,10 +5,14 @@ Feature: SEMCO enrolment report
   I need to be able to view the SEMCO enrolment report
 
   Background:
+    # The three students are the users which the scenarios below enrol with SEMCO. Their names and email addresses are
+    # deliberately not in the same alphabetical order: Zoe Ant comes last by her first name, first by her last name and
+    # first by her email address. This is what makes the report's sorting columns and its initials bars distinguishable.
     Given the following "users" exist:
       | username | firstname | lastname | email                |
       | student1 | Alice     | Apple    | student1@example.com |
       | student2 | Bert      | Beer     | student2@example.com |
+      | student3 | Zoe       | Ant      | ant@example.com      |
       | manager  | Max       | Manager  | manager@example.com  |
       | teacher  | Terry     | Teacher  | teacher@example.com  |
     And the following "courses" exist:
@@ -102,11 +106,11 @@ Feature: SEMCO enrolment report
 
   Scenario: The report shows the course completion status of each enrolment
     # Course 3 is added with course completion enabled, while Course 2 from the background has it disabled.
-    # Within Course 3, student1 and student3 have completed the course and student2 has not. Only student3 has been
+    # Within Course 3, student1 and student4 have completed the course and student2 has not. Only student4 has been
     # graded, which makes him the one enrolment which shows a real course completion grade.
     Given the following "users" exist:
       | username | firstname | lastname | email                |
-      | student3 | Carol     | Cherry   | student3@example.com |
+      | student4 | Carol     | Cherry   | student4@example.com |
     And the following "courses" exist:
       | fullname | shortname | format | enablecompletion |
       | Course 3 | C3        | topics | 1                |
@@ -118,16 +122,16 @@ Feature: SEMCO enrolment report
       | student1 | C3     | BOOK-0001      |
       | student2 | C3     | BOOK-0002      |
       | student1 | C2     | BOOK-0003      |
-      | student3 | C3     | BOOK-0004      |
+      | student4 | C3     | BOOK-0004      |
     And the following "enrol_semco > completions" exist:
       | user     | course | timecompleted    |
       | student1 | C3     | ##1 March 2026## |
-      | student3 | C3     | ##1 April 2026## |
+      | student4 | C3     | ##1 April 2026## |
     # The grade is given in the course's only activity, from where it is aggregated into the course total. The course
     # total is what the report shows as the course completion grade.
     And the following "grade grades" exist:
       | gradeitem   | user     | grade |
-      | Assignment1 | student3 | 82    |
+      | Assignment1 | student4 | 82    |
     When I am on the "enrol_semco > report" page logged in as "manager"
     # The status column shows the same three states which the enrol_semco_get_course_completions webservice reports: a
     # course without course completion cannot be completed at all, while a course with course completion is either
@@ -139,7 +143,7 @@ Feature: SEMCO enrolment report
       | student1        | Course 3    | BOOK-0001        | Completed                 | ##1 March 2026##%d %B %Y, %I:%M %p## | —                       |
       | student2        | Course 3    | BOOK-0002        | Not completed             | —                                    | —                       |
       | student1        | Course 2    | BOOK-0003        | Completion is not enabled | —                                    | —                       |
-      | student3        | Course 3    | BOOK-0004        | Completed                 | ##1 April 2026##%d %B %Y, %I:%M %p## | 82.00                   |
+      | student4        | Course 3    | BOOK-0004        | Completed                 | ##1 April 2026##%d %B %Y, %I:%M %p## | 82.00                   |
     # Sorting by the column groups the enrolments by their completion status. This especially verifies that the status is
     # sorted as a status and not by the underlying course completion time, which would not be able to tell the two states
     # apart which do not have a completion time.
@@ -148,12 +152,7 @@ Feature: SEMCO enrolment report
     And "BOOK-0002" "text" should appear before "BOOK-0001" "text"
 
   Scenario: The report shows the user's first name and last name in a single full name column
-    # Zoe Ant is added as a third enrolled user whose first name and last name are in a different alphabetical order than
-    # the ones of the two users from the background. This is what makes the two sort links distinguishable below.
-    Given the following "users" exist:
-      | username | firstname | lastname | email                |
-      | student3 | Zoe       | Ant      | student3@example.com |
-    And the following "enrol_semco > enrolments" exist:
+    Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
       | student1 | C1     | BOOK-0001      |
       | student2 | C1     | BOOK-0002      |
@@ -167,21 +166,19 @@ Feature: SEMCO enrolment report
       | student2        | Bert Beer              | BOOK-0002        |
       | student3        | Zoe Ant                | BOOK-0003        |
     # Even though the two names share a single column, the column header still offers a dedicated sort link for each of
-    # them, and each link really sorts by its own name field.
-    When I click on "First name" "link" in the "enrolsemco_enrolreport" "table"
+    # them. Out of the box, the report is sorted by the last name, which the plugin settings can change.
+    And "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Zoe Ant" "text" should appear before "Alice Apple" "text"
+    And "Alice Apple" "text" should appear before "Bert Beer" "text"
+    # The first name link really sorts by the first name and not by the last name, which the three users can be told
+    # apart by as their first names and last names are in a different alphabetical order.
+    When I click on "First name" "link_exact" in the "enrolsemco_enrolreport" "table"
     Then "Alice Apple" "text" should appear before "Bert Beer" "text"
     And "Bert Beer" "text" should appear before "Zoe Ant" "text"
-    When I click on "Last name" "link" in the "enrolsemco_enrolreport" "table"
-    Then "Zoe Ant" "text" should appear before "Alice Apple" "text"
-    And "Alice Apple" "text" should appear before "Bert Beer" "text"
 
   Scenario: The report can be filtered with the first name and last name initials bars
-    # Zoe Ant is added as a third enrolled user. Her last name starts with the same letter as Alice Apple's last name,
-    # but her first name does not. This is what makes the two initials bars distinguishable below.
-    Given the following "users" exist:
-      | username | firstname | lastname | email                |
-      | student3 | Zoe       | Ant      | student3@example.com |
-    And the following "enrol_semco > enrolments" exist:
+    Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
       | student1 | C1     | BOOK-0001      |
       | student2 | C1     | BOOK-0002      |
@@ -228,6 +225,79 @@ Feature: SEMCO enrolment report
     And I should see "Bert Beer"
     And I should see "Zoe Ant"
 
+  Scenario Outline: The admin controls the column by which the report is sorted initially
+    # The SEMCO IDs of the three enrolments are picked so that every sorting column yields an order of its own, just as
+    # the three users from the background differ in the order of their names and email addresses.
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid | semcouserid |
+      | student1 | C1     | BOOK-0002      | SEMCO-0003  |
+      | student2 | C1     | BOOK-0003      | SEMCO-0001  |
+      | student3 | C1     | BOOK-0001      | SEMCO-0002  |
+    And the following config values are set as admin:
+      | reportinitialsortingcolumn | <setting> | enrol_semco |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The full name column stays the first column of the report, no matter which sorting column is configured. Its header
+    # is checked by its two sort links, as the header text itself carries the sort direction icon between the two names.
+    Then "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    # The configured column follows directly after it.
+    And I should see "<secondheader>" in the "#enrolsemco_enrolreport thead th:nth-child(2)" "css_element"
+    # And the report is sorted by the configured column, which is verified with the booking IDs of the three enrolments.
+    And "<first>" "text" should appear before "<second>" "text"
+    And "<second>" "text" should appear before "<third>" "text"
+
+    # The scenario is run for every column which the setting offers. The first two examples show that the first name and
+    # the last name are offered separately even though the report shows them in a single full name column: Neither of
+    # them moves a second column to the front as the full name column is the sorting column itself, but each of them
+    # sorts the report by its own name field. The second column is the first regular column in these two cases.
+    Examples:
+      | setting        | secondheader     | first     | second    | third     |
+      | lastname       | Email address    | BOOK-0001 | BOOK-0002 | BOOK-0003 |
+      | firstname      | Email address    | BOOK-0002 | BOOK-0003 | BOOK-0001 |
+      | email          | Email address    | BOOK-0001 | BOOK-0002 | BOOK-0003 |
+      | moodleuserid   | Moodle User ID   | BOOK-0002 | BOOK-0003 | BOOK-0001 |
+      | username       | Moodle Username  | BOOK-0002 | BOOK-0003 | BOOK-0001 |
+      | semcouserid    | SEMCO User ID    | BOOK-0003 | BOOK-0001 | BOOK-0002 |
+      | semcobookingid | SEMCO booking ID | BOOK-0001 | BOOK-0002 | BOOK-0003 |
+
+  Scenario: The admin controls which optional columns the report shows
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    And the following config values are set as admin:
+      | reportoptionalcolumns | course,enrolstatus | enrol_semco |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The two optional columns which are still enabled are shown.
+    Then I should see "Course name"
+    And I should see "Enrolment status"
+    # The optional columns which have been disabled are gone.
+    And I should not see "Moodle User status"
+    And I should not see "Enrolment ID"
+    And I should not see "Course ID"
+    And I should not see "Enrolment start"
+    And I should not see "Enrolment end"
+    And I should not see "Course completion status"
+    And I should not see "Course completion date"
+    And I should not see "Course completion grade"
+    # The columns which the initial sorting setting offers are not optional at all, so they are still shown. The actions
+    # column is not optional either.
+    And I should see "Moodle User ID"
+    And I should see "SEMCO User ID"
+    And I should see "Moodle Username"
+    And "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And I should see "Email address"
+    And I should see "SEMCO booking ID"
+    And I should see "View course profile"
+    # Disabling all optional columns leaves the report with its non-optional columns only.
+    Given the following config values are set as admin:
+      | reportoptionalcolumns |  | enrol_semco |
+    When I am on the "enrol_semco > report" page
+    Then I should not see "Course name"
+    And I should not see "Enrolment status"
+    And I should see "SEMCO booking ID"
+    And I should see "View course profile"
+
   Scenario: The "View course profile" button opens the enrolled user's profile within the course
     Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
@@ -243,19 +313,6 @@ Feature: SEMCO enrolment report
     And I should see "Alice Apple"
     And I should see "User details"
     And I should see "Course details"
-
-  Scenario: A report column can be hidden and made visible again via the table preferences
-    Given the following "enrol_semco > enrolments" exist:
-      | user     | course | semcobookingid |
-      | student1 | C1     | BOOK-0001      |
-    When I am on the "enrol_semco > report" page logged in as "manager"
-    Then I should see "BOOK-0001"
-    # Hiding the SEMCO booking ID column removes its values from the report.
-    When I click on "Hide SEMCO booking ID" "link"
-    Then I should not see "BOOK-0001"
-    # Resetting the table preferences makes the hidden column visible again.
-    When I follow "Reset table preferences"
-    Then I should see "BOOK-0001"
 
   Scenario: The report table can be downloaded
     Given the following "enrol_semco > enrolments" exist:
