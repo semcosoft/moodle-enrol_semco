@@ -78,16 +78,53 @@ if ($ADMIN->fulltree) {
 
     // Create enrolment report heading.
     $name = 'enrol_semco/settings_enrolmentreportheading';
-    $reporturl = new \core\url('/enrol/semco/enrolreport.php');
     $title = get_string('settings_enrolmentreportheading', 'enrol_semco', null, true);
-    $description = get_string('settings_enrolmentreportheading_desc', 'enrol_semco', null, true) . '<br />' .
-            \core\output\html_writer::link(
-                $reporturl,
-                get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
-                ['class' => 'btn btn-secondary my-3']
-            );
+    $description = '';
     $setting = new admin_setting_heading($name, $title, $description);
     $settings->add($setting);
+
+    // Create report button widget.
+    $reporturl = new \core\url('/enrol/semco/enrolreport.php');
+    $name = 'enrol_semco/settings_enrolmentreportbutton';
+    $title = get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true);
+    $description = \core\output\html_writer::link(
+                $reporturl,
+                get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
+                ['class' => 'btn btn-secondary mb-2']
+            ) .
+            '<p>' . get_string('settings_enrolmentreportheading_desc', 'enrol_semco', null, true) . '</p>';
+    $setting = new admin_setting_description($name, $title, $description);
+    $settings->add($setting);
+
+    // Create initial sorting column widget.
+    $name = 'enrol_semco/reportinitialsortingcolumn';
+    $title = get_string('settings_reportinitialsortingcolumn', 'enrol_semco', null, true);
+    $description = get_string('settings_reportinitialsortingcolumn_desc', 'enrol_semco', null, true);
+    $setting = new admin_setting_configselect(
+        $name,
+        $title,
+        $description,
+        ENROL_SEMCO_REPORT_SORTINGCOLUMN_DEFAULT,
+        enrol_semco_get_report_sortingcolumns()
+    );
+    $settings->add($setting);
+
+    // Create optional report columns widget.
+    // All optional columns are enabled by default, i.e. the report shows all of its columns until the admin decides to
+    // drop some of them.
+    $optionalcolumns = enrol_semco_get_report_optionalcolumns();
+    $name = 'enrol_semco/reportoptionalcolumns';
+    $title = get_string('settings_reportoptionalcolumns', 'enrol_semco', null, true);
+    $description = get_string('settings_reportoptionalcolumns_desc', 'enrol_semco', null, true);
+    $setting = new admin_setting_configmulticheckbox(
+        $name,
+        $title,
+        $description,
+        array_fill_keys(array_keys($optionalcolumns), 1),
+        $optionalcolumns
+    );
+    $settings->add($setting);
+    unset($optionalcolumns);
 
     // Create enrolment settings heading.
     $name = 'enrol_semco/settings_enrolmentheading';
