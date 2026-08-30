@@ -71,11 +71,12 @@ Feature: SEMCO enrolment report
     Then I should see "SEMCO enrolments"
     And I should not see "There are not any SEMCO enrolments yet"
     # Each detail of the enrolment is shown in its dedicated column.
-    # The ID columns are not checked here as they hold volatile database IDs. The enrolment start / end columns show either
-    # the enrolment date or the "Unrestricted" label, depending on whether the enrolment has a start / end date.
+    # The ID columns are not checked here as they hold volatile database IDs, and the actions column is not checked either
+    # as its kebab menu has its own scenarios below. The enrolment start / end columns show either the enrolment date or
+    # the "Unrestricted" label, depending on whether the enrolment has a start / end date.
     And the following should exist in the "enrolsemco_enrolreport" table:
-      | SEMCO User ID | Moodle Username | First name / Last name | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status | Actions             |
-      | SEMCO-4711    | student1        | Alice Apple            | student1@example.com | Active             | Course 1    | BOOK-0001        | <startshown>    | <endshown>    | <enrolstatus>    | View course profile |
+      | SEMCO User ID | Moodle Username | First name / Last name | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status |
+      | SEMCO-4711    | student1        | Alice Apple            | student1@example.com | Active             | Course 1    | BOOK-0001        | <startshown>    | <endshown>    | <enrolstatus>    |
 
     # The scenario is run for every permutation of a set / unset enrolment start and end date, once for an active and once for
     # a suspended enrolment. Note that suspending the enrolment only affects the "Enrolment status" column: the "Moodle User
@@ -288,7 +289,7 @@ Feature: SEMCO enrolment report
     And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
     And I should see "Email address"
     And I should see "SEMCO booking ID"
-    And I should see "View course profile"
+    And "Actions" "link" should exist in the "student1" "table_row"
     # Disabling all optional columns leaves the report with its non-optional columns only.
     Given the following config values are set as admin:
       | reportoptionalcolumns |  | enrol_semco |
@@ -296,7 +297,7 @@ Feature: SEMCO enrolment report
     Then I should not see "Course name"
     And I should not see "Enrolment status"
     And I should see "SEMCO booking ID"
-    And I should see "View course profile"
+    And "Actions" "link" should exist in the "student1" "table_row"
 
   Scenario: The report shows the SEMCO user profile fields of the enrolled user
     # The five SEMCO user profile fields are created by this plugin during its installation, but they are filled by SEMCO
@@ -334,12 +335,41 @@ Feature: SEMCO enrolment report
     And I should not see "SEMCO Tenant shortname"
     And I should not see "TENANT-42"
 
-  Scenario: The "View course profile" button opens the enrolled user's profile within the course
+  Scenario: The actions column offers a kebab menu with the pages of the enrolled user
     Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
       | student1 | C1     | BOOK-0001      |
     When I am on the "enrol_semco > report" page logged in as "manager"
-    And I click on "View course profile" "button" in the "student1" "table_row"
+    # The actions column does not carry a visible header, just as it is done on /admin/user.php. The header text is still
+    # in the markup for screen readers, which is why it is looked for in the header cell and not on the page.
+    Then I should see "Actions" in the "#enrolsemco_enrolreport thead th:last-child" "css_element"
+    # The cell itself holds a kebab menu with one item per page which the report links to. The items are looked for in
+    # the table row and not on the page, as they are behind the kebab trigger and are not visible right away.
+    And "Actions" "link" should exist in the "student1" "table_row"
+    And "View user profile" "link" should exist in the "student1" "table_row"
+    And "View course profile" "link" should exist in the "student1" "table_row"
+    And "View course grades" "link" should exist in the "student1" "table_row"
+
+  Scenario: The kebab menu leads to the enrolled user's site wide profile
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    And I click on "Actions" "link" in the "student1" "table_row"
+    And I click on "View user profile" "link" in the "student1" "table_row"
+    # The target page is the user's site wide profile. To be sure that we really navigated there, we assert the page's
+    # body ID which /user/profile.php sets, together with the user's name and the profile heading.
+    Then "body#page-user-profile" "css_element" should exist
+    And I should see "Alice Apple"
+    And I should see "User profile"
+
+  Scenario: The kebab menu leads to the enrolled user's profile within the course
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    And I click on "Actions" "link" in the "student1" "table_row"
+    And I click on "View course profile" "link" in the "student1" "table_row"
     # The target page is the enrolled user's profile within the course. To be sure that we really navigated there, we assert
     # the page's body ID (which /user/view.php sets to the course view page type, so it depends on the course format being
     # topics) and content which only exists on that profile page (and not on the report itself, where "Course 1" and the
@@ -349,6 +379,54 @@ Feature: SEMCO enrolment report
     And I should see "Alice Apple"
     And I should see "User details"
     And I should see "Course details"
+
+  Scenario: The kebab menu leads to the enrolled user's grades within the course
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    And I click on "Actions" "link" in the "student1" "table_row"
+    And I click on "View course grades" "link" in the "student1" "table_row"
+    # The target page is the user's grade report within the course, which /course/user.php renders for the 'grade' mode.
+    Then "body#page-course-user" "css_element" should exist
+    And I should see "Alice Apple"
+    And I should see "Course 1"
+    And I should see "Grades"
+
+  Scenario: The kebab menu only offers the pages which the user is allowed to see
+    # The report viewer is allowed to open the report, but that is all: The role does not hold any other capability and
+    # the user is not enrolled anywhere, so none of the pages which the kebab menu links to is within reach.
+    Given the following "users" exist:
+      | username     | firstname | lastname | email                    |
+      | reportviewer | Rita      | Viewer   | reportviewer@example.com |
+    And the following "roles" exist:
+      | shortname      | name          |
+      | semcoreportvie | Report viewer |
+    And the following "role capabilities" exist:
+      | role           | enrol/semco:viewreport |
+      | semcoreportvie | allow                  |
+    And the following "system role assigns" exist:
+      | user         | role           |
+      | reportviewer | semcoreportvie |
+    # Profiles are only guarded by capabilities if Moodle is configured to force a login for them, which is the default.
+    # The setting is set explicitly here as the whole scenario depends on it.
+    And the following config values are set as admin:
+      | forceloginforprofiles | 1 |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    # The manager is allowed to reach all three pages and gets all three items.
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    Then "View user profile" "link" should exist in the "student1" "table_row"
+    And "View course profile" "link" should exist in the "student1" "table_row"
+    And "View course grades" "link" should exist in the "student1" "table_row"
+    # The report viewer sees the enrolment but does not get a kebab menu at all, as there is not a single item to offer.
+    When I am on the "enrol_semco > report" page logged in as "reportviewer"
+    Then I should see "BOOK-0001"
+    And "Actions" "link" should not exist in the "student1" "table_row"
+    And "View user profile" "link" should not exist in the "student1" "table_row"
+    And "View course profile" "link" should not exist in the "student1" "table_row"
+    And "View course grades" "link" should not exist in the "student1" "table_row"
 
   Scenario: The report table can be downloaded
     Given the following "enrol_semco > enrolments" exist:

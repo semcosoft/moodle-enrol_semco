@@ -76,6 +76,8 @@ $string['tableuserid'] = 'Moodle User ID';
 $string['tableusername'] = 'Moodle Username';
 $string['tableuserstatus'] = 'Moodle User status';
 $string['tableviewenrolment'] = 'View course profile';
+$string['tableviewcoursegrades'] = 'View course grades';
+$string['tableviewuserprofile'] = 'View user profile';
 
 // Webservice errors.
 $string['bookingidduplicate'] = 'There is already an enrolment instance with this SEMCO booking ID ({$a}).';
