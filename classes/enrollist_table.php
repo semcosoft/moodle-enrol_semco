@@ -137,9 +137,18 @@ class enrollist_table extends \core_table\sql_table {
                 END';
         }
 
+        // Compose the SQL expression which selects the user's name fields.
+        // The report does not show the first name and the last name in two separate columns, it shows the user's name in a
+        // single column which is composed by fullname(). Depending on the site's full name format, fullname() does not only
+        // need the first name and the last name, but may also need additional name fields like the middle name. All of
+        // these fields are therefore selected here.
+        $namefieldssql = implode(', ', array_map(static function ($namefield) {
+            return 'u.' . $namefield . ' AS ' . $namefield;
+        }, \core_user\fields::get_name_fields()));
+
         // Set the sql for the table (putting enrolid as first parameter to make it unique).
         $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, uid.data AS semcouserid, u.username AS username,
-                u.lastname AS lastname, u.firstname AS firstname, u.email AS email, u.suspended AS suspended,
+                ' . $namefieldssql . ', u.email AS email, u.suspended AS suspended,
                 e.courseid AS courseid, c.fullname AS course, e.customchar1 AS semcobookingid,
                 ue.timestart AS enrolstart, ue.timeend AS enrolend, ue.status AS enrolstatus,
                 ' . $completionstatussql . ' AS coursecompletionstatus, cc.timecompleted AS coursecompletiondate,
@@ -162,7 +171,7 @@ class enrollist_table extends \core_table\sql_table {
         $this->set_sql($sqlfields, $sqlfrom, $sqlwhere, $sqlparams);
 
         // Define the table columns.
-        $tablecolumns = ['moodleuserid', 'semcouserid', 'username', 'lastname', 'firstname', 'email', 'suspended',
+        $tablecolumns = ['moodleuserid', 'semcouserid', 'username', 'fullname', 'email', 'suspended',
                 'enrolid', 'courseid', 'course', 'semcobookingid', 'enrolstart', 'enrolend', 'enrolstatus',
                 'coursecompletionstatus', 'coursecompletiondate', 'coursecompletiongrade'];
         // Add the actions column if the table should not be downloaded.
@@ -188,8 +197,10 @@ class enrollist_table extends \core_table\sql_table {
                 get_string('tableuserid', 'enrol_semco'),
                 get_string('installer_userfield1fullname', 'enrol_semco'),
                 get_string('tableusername', 'enrol_semco'),
-                get_string('lastname'),
-                get_string('firstname'),
+                // The full name column is a special column in tablelib: Its header is replaced with the sort links of the
+                // name fields which the site's full name format uses, just as it is done on /admin/user.php. The header
+                // which is defined here is still needed as it is used for the column's show / hide link.
+                get_string('fullname'),
                 get_string('email'),
                 get_string('tableuserstatus', 'enrol_semco'),
                 get_string('tableenrolid', 'enrol_semco'),
@@ -209,6 +220,22 @@ class enrollist_table extends \core_table\sql_table {
         }
         // Set the table headers.
         $this->define_headers($tableheaders);
+    }
+
+    /**
+     * Override the col_fullname function to show the user's full name as plain text.
+     *
+     * The parent function turns the full name into a link to the user's profile. This is not wanted here as none of the
+     * other report columns is a link and as the report already offers this navigation in its actions column. On top of
+     * that, the parent function would not even be able to compose the link as it expects the user ID in a field which is
+     * named differently than the one which this table's SQL query provides.
+     *
+     * @param stdClass $row The submission row.
+     *
+     * @return string The cell content.
+     */
+    public function col_fullname($row) {
+        return fullname($row, has_capability('moodle/site:viewfullnames', $this->get_context()));
     }
 
     /**
@@ -393,7 +420,20 @@ class enrollist_table extends \core_table\sql_table {
 
         $this->print_initials_bar();
 
-        echo $OUTPUT->notification(get_string('emptytable', 'enrol_semco'), 'info');
+        // Pick the notification which describes why the table is empty.
+        // The table is not necessarily empty because there aren't any SEMCO enrolments at all: As soon as an initial is
+        // picked in one of the initials bars above, the table may just as well be empty because no enrolled user matches
+        // the picked initial. Telling the user that there aren't any SEMCO enrolments yet would be plainly wrong then.
+        // The getters return null if the initials bars are not used at all and an empty string if they are used but no
+        // initial is picked, so both cases have to be covered here.
+        $initialfirst = $this->get_initial_first();
+        $initiallast = $this->get_initial_last();
+        if (!empty($initialfirst) || !empty($initiallast)) {
+            $emptymessage = get_string('emptytablefiltered', 'enrol_semco');
+        } else {
+            $emptymessage = get_string('emptytable', 'enrol_semco');
+        }
+        echo $OUTPUT->notification($emptymessage, 'info');
 
         // Render the dynamic table footer.
         echo $this->get_dynamic_table_html_end();
