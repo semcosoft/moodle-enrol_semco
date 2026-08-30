@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-08-30 - Improvement: Show the 'SEMCO User company', 'SEMCO User birthday', 'SEMCO User place of birth' and 'SEMCO Tenant shortname' user profile fields in own columns of the SEMCO enrolment report table
 * 2026-08-30 - Improvement: Add the 'Optional report columns' setting which controls which of the optional columns the SEMCO enrolment report table shows. Doing this, the possibility to let the user hide particular columns from the report was removed for the sake of simplicity
 * 2026-08-30 - Improvement: Add the 'Initial sorting column' setting which controls by which column the SEMCO enrolment report table is sorted initially
 * 2026-08-30 - Improvement: Merge the 'First name' and 'Last name' columns of the SEMCO enrolment report table into a single 'Full name' column and add an initials filter bar to the table.
