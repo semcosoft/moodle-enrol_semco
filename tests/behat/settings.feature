@@ -34,8 +34,23 @@ Feature: SEMCO plugin settings page
   Scenario: The settings page shows a report button in the enrolment report section
     When I am on the "enrol_semco > Settings" page logged in as "admin"
     Then I should see "Enrolment report"
-    # The "View report" link (which is styled as a button) is shown within the "Enrolment report" section.
+    # The "View report" link (which is styled as a button) is shown within the "Enrolment report" section, together with
+    # the text which explains what the report is about.
     And I should see a "View report" "link" in the "Enrolment report" settings section
+    And I should see a "There is a site report where you can see all enrolments which have been made by SEMCO." "text" in the "Enrolment report" settings section
+
+  Scenario: The settings page shows the report table settings in the enrolment report section
+    When I am on the "enrol_semco > Settings" page logged in as "admin"
+    Then I should see "Enrolment report"
+    # The initial sorting column is picked from a dropdown which offers the report columns which can be sorted by.
+    And I should see an "Initial sorting column" "select" in the "Enrolment report" settings section
+    And the "Initial sorting column" select box should contain "Last name"
+    And the "Initial sorting column" select box should contain "SEMCO booking ID"
+    # The optional report columns are picked with a checkbox per column, and all of them are enabled out of the box.
+    And I should see a "Moodle User status" "checkbox" in the "Enrolment report" settings section
+    And I should see a "Course completion grade" "checkbox" in the "Enrolment report" settings section
+    And the field "Moodle User status" matches value "1"
+    And the field "Course completion grade" matches value "1"
 
   # "Enrolment process" section
 
