@@ -104,6 +104,11 @@ In this section, you will find the Moodle base URL and the webservice token whic
 In this section, you will find the link to a site report where you can see all enrolments which have been made by SEMCO.
 For managers, this report is also linked in the 'Reports' section within the site administration.
 
+Additionally, you can adapt the report table with these two settings:
+
+* With the 'Initial sorting column' setting, you control by which column the report is sorted when it is opened.
+* With the 'Optional report columns' setting, you control which of the optional columns are shown in the report. The columns which are offered in the 'Initial sorting column' setting are always shown and are therefore not offered here.
+
 ### 3. Enrolment process
 
 In this section, you control with which role SEMCO enrols users into courses. The configured role is mandatory for all users who are enrolled from SEMCO and cannot be overridden with the SEMCO enrolment webservice endpoint.

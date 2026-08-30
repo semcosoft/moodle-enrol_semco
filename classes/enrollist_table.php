@@ -170,56 +170,104 @@ class enrollist_table extends \core_table\sql_table {
         $sqlparams['uifshortname'] = ENROL_SEMCO_USERFIELD1NAME;
         $this->set_sql($sqlfields, $sqlfrom, $sqlwhere, $sqlparams);
 
-        // Define the table columns.
-        $tablecolumns = ['moodleuserid', 'semcouserid', 'username', 'fullname', 'email', 'suspended',
-                'enrolid', 'courseid', 'course', 'semcobookingid', 'enrolstart', 'enrolend', 'enrolstatus',
-                'coursecompletionstatus', 'coursecompletiondate', 'coursecompletiongrade'];
-        // Add the actions column if the table should not be downloaded.
-        if (empty($download)) {
-            $tablecolumns[] = 'actions';
+        // Define the table columns with their headers, in the order in which the report shows them by default.
+        // The columns and their headers are kept in a single array as both of them are filtered and re-ordered below and
+        // as a column which loses its header (or vice versa) would shift the whole table.
+        $tablecolumns = [
+                // The full name column is a special column in tablelib: Its header is replaced with the sort links of the
+                // name fields which the site's full name format uses, just as it is done on /admin/user.php. The header
+                // which is defined here is still needed as tablelib falls back to it if the full name format does not
+                // yield any sortable name field.
+                'fullname' => get_string('fullname'),
+                'email' => get_string('email'),
+                'moodleuserid' => get_string('tableuserid', 'enrol_semco'),
+                'username' => get_string('tableusername', 'enrol_semco'),
+                'semcouserid' => get_string('installer_userfield1fullname', 'enrol_semco'),
+                'semcobookingid' => get_string('tablesemcobookingid', 'enrol_semco'),
+                'enrolid' => get_string('tableenrolid', 'enrol_semco'),
+                'courseid' => get_string('tablecourseid', 'enrol_semco'),
+                'course' => get_string('tablecoursename', 'enrol_semco'),
+                'enrolstart' => get_string('tableenrolstart', 'enrol_semco'),
+                'enrolend' => get_string('tableenrolend', 'enrol_semco'),
+                'enrolstatus' => get_string('tableenrolstatus', 'enrol_semco'),
+                'coursecompletionstatus' => get_string('tablecoursecompletionstatus', 'enrol_semco'),
+                'coursecompletiondate' => get_string('tablecoursecompletiondate', 'enrol_semco'),
+                'coursecompletiongrade' => get_string('tablecoursecompletiongrade', 'enrol_semco'),
+                'suspended' => get_string('tableuserstatus', 'enrol_semco'),
+        ];
+
+        // Drop the optional columns which the admin has disabled in the plugin settings.
+        // The setting stores the enabled columns as a comma separated list. As long as it has not been stored at all,
+        // all optional columns are shown, which is what the setting's default says.
+        $optionalcolumnsconfig = get_config('enrol_semco', 'reportoptionalcolumns');
+        if ($optionalcolumnsconfig === false) {
+            $enabledoptionalcolumns = array_keys(enrol_semco_get_report_optionalcolumns());
+        } else {
+            $enabledoptionalcolumns = explode(',', $optionalcolumnsconfig);
         }
+        foreach (array_keys(enrol_semco_get_report_optionalcolumns()) as $optionalcolumn) {
+            if (!in_array($optionalcolumn, $enabledoptionalcolumns)) {
+                unset($tablecolumns[$optionalcolumn]);
+            }
+        }
+
+        // Get the initial sorting column from the plugin settings.
+        // The setting's default is used as long as the setting does not hold a supported value, which is the case as long
+        // as it has not been stored at all.
+        $sortingcolumn = get_config('enrol_semco', 'reportinitialsortingcolumn');
+        if (!array_key_exists($sortingcolumn, enrol_semco_get_report_sortingcolumns())) {
+            $sortingcolumn = ENROL_SEMCO_REPORT_SORTINGCOLUMN_DEFAULT;
+        }
+
+        // Move the columns which are shown at the front of the table to the front.
+        // The full name column is pinned to the very front of the report as this is the column which tells the rows apart
+        // for the human eye. The column which the report is sorted by follows directly after it.
+        // The sorting setting offers the first name and the last name separately, but the report shows them in a single
+        // full name column, so picking either of the two names means that the full name column is the sorting column
+        // itself and there is no second column to move.
+        $sortingtablecolumn = in_array($sortingcolumn, ['lastname', 'firstname']) ? 'fullname' : $sortingcolumn;
+        $frontcolumns = ['fullname' => $tablecolumns['fullname']];
+        if ($sortingtablecolumn !== 'fullname') {
+            $frontcolumns[$sortingtablecolumn] = $tablecolumns[$sortingtablecolumn];
+        }
+        $tablecolumns = array_merge($frontcolumns, array_diff_key($tablecolumns, $frontcolumns));
+
+        // Add the actions column if the table should not be downloaded.
+        // This is done after the re-ordering above as the actions column always stays the last column of the table.
+        if (empty($download)) {
+            $tablecolumns['actions'] = get_string('actions');
+        }
+
         // Set the table columns.
-        $this->define_columns($tablecolumns);
+        $this->define_columns(array_keys($tablecolumns));
 
         // Prevent column wrapping.
         // This is applied to the header cells and to the body cells alike. The course column re-enables wrapping for its
         // body cells in col_course(), so that its header still stays on a single line.
-        foreach ($tablecolumns as $tablecolumn) {
+        foreach (array_keys($tablecolumns) as $tablecolumn) {
             $this->column_class($tablecolumn, 'text-nowrap');
         }
 
-        // Allow table sorting.
-        $this->sortable(true, 'id', SORT_ASC);
+        // Prevent the user from hiding columns.
+        // The report is meant to show the full picture of a SEMCO enrolment, and a hidden column would silently stay
+        // hidden on every subsequent visit as the table remembers this preference.
+        // Two calls are needed for this: collapsible() removes the show / hide links from the column headers, and the
+        // empty list of hidden columns makes the table discard every column collapse preference which still reaches it
+        // otherwise. Such a preference can still reach the table in two ways: The user may have hidden a column back
+        // when this report still offered the show / hide links, in which case the column would stay hidden forever as
+        // there is no link anymore to bring it back. And the table picks the column to hide from a URL parameter, which
+        // anyone can add to the report URL by hand.
+        $this->collapsible(false);
+        $this->set_hidden_columns([]);
+
+        // Allow table sorting, starting with the initial sorting column from the plugin settings.
+        // The sorting column is passed as it is stored and is deliberately not replaced with the full name column: The
+        // full name column is sorted by one of its name fields and not by the column name itself.
+        $this->sortable(true, $sortingcolumn, SORT_ASC);
         $this->no_sorting('actions');
 
-        // Define the table headers.
-        $tableheaders = [
-                get_string('tableuserid', 'enrol_semco'),
-                get_string('installer_userfield1fullname', 'enrol_semco'),
-                get_string('tableusername', 'enrol_semco'),
-                // The full name column is a special column in tablelib: Its header is replaced with the sort links of the
-                // name fields which the site's full name format uses, just as it is done on /admin/user.php. The header
-                // which is defined here is still needed as it is used for the column's show / hide link.
-                get_string('fullname'),
-                get_string('email'),
-                get_string('tableuserstatus', 'enrol_semco'),
-                get_string('tableenrolid', 'enrol_semco'),
-                get_string('tablecourseid', 'enrol_semco'),
-                get_string('tablecoursename', 'enrol_semco'),
-                get_string('tablesemcobookingid', 'enrol_semco'),
-                get_string('tableenrolstart', 'enrol_semco'),
-                get_string('tableenrolend', 'enrol_semco'),
-                get_string('tableenrolstatus', 'enrol_semco'),
-                get_string('tablecoursecompletionstatus', 'enrol_semco'),
-                get_string('tablecoursecompletiondate', 'enrol_semco'),
-                get_string('tablecoursecompletiongrade', 'enrol_semco'),
-        ];
-        // Add the actions column if the table should not be downloaded.
-        if (empty($download)) {
-            $tableheaders[] = get_string('actions');
-        }
         // Set the table headers.
-        $this->define_headers($tableheaders);
+        $this->define_headers(array_values($tablecolumns));
     }
 
     /**
