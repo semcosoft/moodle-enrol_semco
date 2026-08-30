@@ -54,7 +54,10 @@ Feature: SEMCO enrolment report
   Scenario: The report shows an empty state when there are no SEMCO enrolments
     When I am on the "enrol_semco > report" page logged in as "manager"
     Then I should see "SEMCO enrolments"
+    # As no initial is picked in the initials bars, the report states that there aren't any SEMCO enrolments at all and
+    # not that the initials filter is the reason for the empty table.
     And I should see "There are not any SEMCO enrolments yet in this Moodle instance"
+    And I should not see "There are not any SEMCO enrolments which match the selected initials"
 
   Scenario Outline: The report lists a SEMCO enrolment with all its details for every enrolment period
     Given the following "enrol_semco > enrolments" exist:
@@ -67,8 +70,8 @@ Feature: SEMCO enrolment report
     # The ID columns are not checked here as they hold volatile database IDs. The enrolment start / end columns show either
     # the enrolment date or the "Unrestricted" label, depending on whether the enrolment has a start / end date.
     And the following should exist in the "enrolsemco_enrolreport" table:
-      | SEMCO User ID | Moodle Username | Last name | First name | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status | Actions             |
-      | SEMCO-4711    | student1        | Apple     | Alice      | student1@example.com | Active             | Course 1    | BOOK-0001        | <startshown>    | <endshown>    | <enrolstatus>    | View course profile |
+      | SEMCO User ID | Moodle Username | First name / Last name | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status | Actions             |
+      | SEMCO-4711    | student1        | Alice Apple            | student1@example.com | Active             | Course 1    | BOOK-0001        | <startshown>    | <endshown>    | <enrolstatus>    | View course profile |
 
     # The scenario is run for every permutation of a set / unset enrolment start and end date, once for an active and once for
     # a suspended enrolment. Note that suspending the enrolment only affects the "Enrolment status" column: the "Moodle User
@@ -144,6 +147,87 @@ Feature: SEMCO enrolment report
     Then "BOOK-0003" "text" should appear before "BOOK-0002" "text"
     And "BOOK-0002" "text" should appear before "BOOK-0001" "text"
 
+  Scenario: The report shows the user's first name and last name in a single full name column
+    # Zoe Ant is added as a third enrolled user whose first name and last name are in a different alphabetical order than
+    # the ones of the two users from the background. This is what makes the two sort links distinguishable below.
+    Given the following "users" exist:
+      | username | firstname | lastname | email                |
+      | student3 | Zoe       | Ant      | student3@example.com |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+      | student2 | C1     | BOOK-0002      |
+      | student3 | C1     | BOOK-0003      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The report does not show the first name and the last name in two separate columns, it composes them into a single
+    # full name column, just as it is done on /admin/user.php.
+    Then the following should exist in the "enrolsemco_enrolreport" table:
+      | Moodle Username | First name / Last name | SEMCO booking ID |
+      | student1        | Alice Apple            | BOOK-0001        |
+      | student2        | Bert Beer              | BOOK-0002        |
+      | student3        | Zoe Ant                | BOOK-0003        |
+    # Even though the two names share a single column, the column header still offers a dedicated sort link for each of
+    # them, and each link really sorts by its own name field.
+    When I click on "First name" "link" in the "enrolsemco_enrolreport" "table"
+    Then "Alice Apple" "text" should appear before "Bert Beer" "text"
+    And "Bert Beer" "text" should appear before "Zoe Ant" "text"
+    When I click on "Last name" "link" in the "enrolsemco_enrolreport" "table"
+    Then "Zoe Ant" "text" should appear before "Alice Apple" "text"
+    And "Alice Apple" "text" should appear before "Bert Beer" "text"
+
+  Scenario: The report can be filtered with the first name and last name initials bars
+    # Zoe Ant is added as a third enrolled user. Her last name starts with the same letter as Alice Apple's last name,
+    # but her first name does not. This is what makes the two initials bars distinguishable below.
+    Given the following "users" exist:
+      | username | firstname | lastname | email                |
+      | student3 | Zoe       | Ant      | student3@example.com |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+      | student2 | C1     | BOOK-0002      |
+      | student3 | C1     | BOOK-0003      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The report offers an initials bar for each name field of the full name column. Tablelib only shows these bars for
+    # tables which have a full name column at all, which is why they appeared together with that column.
+    Then "First name" "core_course > initials bar" should exist
+    And "Last name" "core_course > initials bar" should exist
+    # Picking an initial in the first name bar keeps only the enrolments of the users whose first name starts with it.
+    When I click on "A" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And I should not see "Bert Beer"
+    And I should not see "Zoe Ant"
+    # Picking "All" again resets the filter and brings all enrolments back.
+    When I click on "All" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And I should see "Bert Beer"
+    And I should see "Zoe Ant"
+    # The second bar really filters by the last name and not by the first name, which is why it keeps Zoe Ant next to
+    # Alice Apple and drops Bert Beer.
+    When I click on "A" "link_exact" in the "Last name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And I should see "Zoe Ant"
+    And I should not see "Bert Beer"
+    # Both bars filter independently from each other, so combining them narrows the report down to the one enrolment
+    # which matches both initials.
+    When I click on "A" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And I should not see "Zoe Ant"
+    And I should not see "Bert Beer"
+    # Picking an initial which no enrolled user matches empties the report. The report then explains that the filter is
+    # the reason for the empty table and does not claim that there aren't any SEMCO enrolments at all.
+    When I click on "All" "link_exact" in the "Last name" "core_course > initials bar"
+    And I click on "Q" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should not see "Alice Apple"
+    And I should not see "Bert Beer"
+    And I should not see "Zoe Ant"
+    And I should see "There are not any SEMCO enrolments which match the selected initials"
+    And I should not see "There are not any SEMCO enrolments yet in this Moodle instance"
+    # Resetting the filter shows all enrolments again.
+    When I click on "All" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And I should see "Bert Beer"
+    And I should see "Zoe Ant"
+
   Scenario: The "View course profile" button opens the enrolled user's profile within the course
     Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
@@ -152,9 +236,9 @@ Feature: SEMCO enrolment report
     And I click on "View course profile" "button" in the "student1" "table_row"
     # The target page is the enrolled user's profile within the course. To be sure that we really navigated there, we assert
     # the page's body ID (which /user/view.php sets to the course view page type, so it depends on the course format being
-    # topics) and content which only exists on that profile page (and not on the report itself, where "Course 1" and the name
-    # parts are shown as well): the user's full name as the profile heading, the "User details" section and the "Course
-    # details" section (the latter only exists on the in-course profile, not on the site-wide profile).
+    # topics) and content which only exists on that profile page (and not on the report itself, where "Course 1" and the
+    # user's full name are shown as well): the "User details" section and the "Course details" section (the latter only
+    # exists on the in-course profile, not on the site-wide profile).
     Then "body#page-course-view-topics" "css_element" should exist
     And I should see "Alice Apple"
     And I should see "User details"
