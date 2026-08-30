@@ -34,6 +34,10 @@ require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 // Require table library.
 require_once($CFG->dirroot . '/lib/tablelib.php');
 
+// Require user library.
+// It holds user_can_view_profile() which the actions menu needs to decide which profile pages it may link to.
+require_once($CFG->dirroot . '/user/lib.php');
+
 /**
  * Class enrollist_table
  *
@@ -86,6 +90,11 @@ class enrollist_table extends \core_table\sql_table {
      * @var array The course grade items which have been fetched so far, keyed by the course ID.
      */
     private array $coursegradeitems = [];
+
+    /**
+     * @var array The courses which have been fetched so far, keyed by the course ID.
+     */
+    private array $courses = [];
 
     /**
      * Override the constructor to construct a enrollist table instead of a simple table.
@@ -175,6 +184,7 @@ class enrollist_table extends \core_table\sql_table {
         $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, ' . $userfieldssql . ', u.username AS username,
                 ' . $namefieldssql . ', u.email AS email, u.suspended AS suspended,
                 e.courseid AS courseid, c.fullname AS course, e.customchar1 AS semcobookingid,
+                c.showgrades AS courseshowgrades,
                 ue.timestart AS enrolstart, ue.timeend AS enrolend, ue.status AS enrolstatus,
                 ' . $completionstatussql . ' AS coursecompletionstatus, cc.timecompleted AS coursecompletiondate,
                 gg.finalgrade AS coursecompletiongrade';
@@ -260,7 +270,10 @@ class enrollist_table extends \core_table\sql_table {
         // Add the actions column if the table should not be downloaded.
         // This is done after the re-ordering above as the actions column always stays the last column of the table.
         if (empty($download)) {
-            $tablecolumns['actions'] = get_string('actions');
+            // The column does not have a visible header, just as it is done on /admin/user.php. The header is still there
+            // for screen readers, though, as an empty column header would leave them without any clue what the column is
+            // about.
+            $tablecolumns['actions'] = \core\output\html_writer::span(get_string('actions'), 'visually-hidden');
         }
 
         // Set the table columns.
@@ -426,13 +439,137 @@ class enrollist_table extends \core_table\sql_table {
 
         // Inject actions column.
         if ($column === 'actions') {
-            $buttonurl = new \core\url('/user/view.php', ['id' => $row->moodleuserid, 'course' => $row->courseid]);
-            $buttonlabel = get_string('tableviewenrolment', 'enrol_semco');
-            return $OUTPUT->single_button($buttonurl, $buttonlabel, 'get');
+            return $this->build_actionsmenu($row);
         }
 
         // Call parent function.
         parent::other_cols($column, $row);
+    }
+
+    /**
+     * Build the actions menu of a report row.
+     *
+     * The menu is a kebab menu with one item per page which the report links to, just as it is done on /admin/user.php.
+     *
+     * An item is only added if the current user is really allowed to see the page which it links to. The report is not
+     * only shown to administrators but to everyone with the report capability, and such a user does not necessarily hold
+     * the capabilities which the linked pages require. Without these checks, the menu would offer items which only lead
+     * to an error page.
+     *
+     * @param stdClass $row The submission row.
+     *
+     * @return string The cell content.
+     */
+    private function build_actionsmenu($row) {
+        global $OUTPUT;
+
+        // Compose the user object which the profile checks below need.
+        // The report never lists deleted users as its SQL query filters them out, so the flag can be set right away
+        // instead of fetching the whole user record for every single row.
+        $user = (object) ['id' => $row->moodleuserid, 'deleted' => 0];
+
+        // Get the course. It is needed as a whole record and not just as an ID, as the checks below look at the course's
+        // group mode and at its 'Show gradebook to students' setting.
+        $course = $this->get_course($row->courseid);
+
+        // Create the menu.
+        $menu = new \core\output\action_menu();
+        $menu->set_kebab_trigger(get_string('actions'));
+
+        // Add the item which leads to the user's site wide profile.
+        if (user_can_view_profile($user)) {
+            $menu->add(new \core\output\action_menu\link_secondary(
+                new \core\url('/user/profile.php', ['id' => $row->moodleuserid]),
+                new \core\output\pix_icon('t/viewuserprofile', '', 'enrol_semco'),
+                get_string('tableviewuserprofile', 'enrol_semco')
+            ));
+        }
+
+        // Add the item which leads to the user's profile within the enrolled course.
+        if (user_can_view_profile($user, $course)) {
+            $menu->add(new \core\output\action_menu\link_secondary(
+                new \core\url('/user/view.php', ['id' => $row->moodleuserid, 'course' => $row->courseid]),
+                new \core\output\pix_icon('t/viewcourseprofile', '', 'enrol_semco'),
+                get_string('tableviewenrolment', 'enrol_semco')
+            ));
+        }
+
+        // Add the item which leads to the user's grades within the enrolled course.
+        if ($this->can_view_coursegrades($course, $row->moodleuserid, $row->courseshowgrades)) {
+            $menu->add(new \core\output\action_menu\link_secondary(
+                new \core\url(
+                    '/course/user.php',
+                    ['mode' => 'grade', 'id' => $row->courseid, 'user' => $row->moodleuserid]
+                ),
+                new \core\output\pix_icon('t/viewcoursegrades', '', 'enrol_semco'),
+                get_string('tableviewcoursegrades', 'enrol_semco')
+            ));
+        }
+
+        // If the user is not allowed to reach any of the pages, the menu is not shown at all. Rendering it anyway would
+        // leave an inviting kebab trigger which opens an empty menu.
+        if ($menu->is_empty()) {
+            return '';
+        }
+
+        return $OUTPUT->render($menu);
+    }
+
+    /**
+     * Check whether the current user is allowed to see the given user's grades within the given course.
+     *
+     * These are exactly the conditions under which /course/user.php offers its 'grade' mode, which is the page which the
+     * actions menu links to.
+     *
+     * @param stdClass $course The course.
+     * @param int $userid The ID of the user whose grades should be shown.
+     * @param int $showgrades Whether the course shows its gradebook to students.
+     *
+     * @return bool Whether the grades can be seen.
+     */
+    private function can_view_coursegrades($course, int $userid, $showgrades): bool {
+        global $USER;
+
+        $coursecontext = \core\context\course::instance($course->id);
+        $usercontext = \core\context\user::instance($userid);
+
+        // Everyone who can see all grades of the course can see this user's grades as well.
+        if (has_capability('moodle/grade:viewall', $coursecontext)) {
+            return true;
+        }
+
+        // All remaining cases need the course to show its gradebook at all.
+        if (empty($showgrades)) {
+            return false;
+        }
+
+        // Users can see their own grades if the course lets them.
+        if ($userid == $USER->id && has_capability('moodle/grade:view', $coursecontext)) {
+            return true;
+        }
+
+        // And the grades of a particular user can be seen by those who are allowed to look at this very user, which are
+        // typically the user's parents.
+        return has_capability('moodle/grade:viewall', $usercontext) ||
+                has_capability('moodle/user:viewuseractivitiesreport', $usercontext);
+    }
+
+    /**
+     * Get a course record.
+     *
+     * The report shows many rows which stem from just a few courses, so the courses are remembered instead of being
+     * fetched for every single row.
+     *
+     * @param int $courseid The course ID.
+     *
+     * @return stdClass The course record.
+     */
+    private function get_course(int $courseid) {
+        if (!array_key_exists($courseid, $this->courses)) {
+            $this->courses[$courseid] = get_course($courseid);
+        }
+
+        return $this->courses[$courseid];
     }
 
     /**
