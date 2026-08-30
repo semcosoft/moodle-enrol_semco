@@ -58,10 +58,10 @@ Feature: SEMCO enrolment report
   Scenario: The report shows an empty state when there are no SEMCO enrolments
     When I am on the "enrol_semco > report" page logged in as "manager"
     Then I should see "SEMCO enrolments"
-    # As no initial is picked in the initials bars, the report states that there aren't any SEMCO enrolments at all and
-    # not that the initials filter is the reason for the empty table.
+    # As neither an initial is picked in the initials bars nor a filter is applied in the filter menu, the report states
+    # that there aren't any SEMCO enrolments at all and not that a filter is the reason for the empty table.
     And I should see "There are not any SEMCO enrolments yet in this Moodle instance"
-    And I should not see "There are not any SEMCO enrolments which match the selected initials"
+    And I should not see "There are not any SEMCO enrolments which match the selected filters"
 
   Scenario Outline: The report lists a SEMCO enrolment with all its details for every enrolment period
     Given the following "enrol_semco > enrolments" exist:
@@ -218,13 +218,133 @@ Feature: SEMCO enrolment report
     Then I should not see "Alice Apple"
     And I should not see "Bert Beer"
     And I should not see "Zoe Ant"
-    And I should see "There are not any SEMCO enrolments which match the selected initials"
+    And I should see "There are not any SEMCO enrolments which match the selected filters"
     And I should not see "There are not any SEMCO enrolments yet in this Moodle instance"
     # Resetting the filter shows all enrolments again.
     When I click on "All" "link_exact" in the "First name" "core_course > initials bar"
     Then I should see "Alice Apple"
     And I should see "Bert Beer"
     And I should see "Zoe Ant"
+
+  Scenario: The report can be filtered with the filter menu
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid | semcouserid |
+      | student1 | C1     | BOOK-0001      | SEMCO-4711  |
+      | student2 | C2     | BOOK-0002      | SEMCO-4712  |
+      | student3 | C2     | BOOK-0003      | SEMCO-4713  |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # As long as no filter is applied, the menu button does not carry a number.
+    Then "Filters" "button" should exist
+    And I should not see "Filters (1)"
+    And I should see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should see "BOOK-0003"
+    # Filtering by a course keeps the enrolments of that course only, and the button tells how many filters are applied.
+    When I set the field "Course name" to "Course 2"
+    And I press "Apply"
+    Then I should see "Filters (1)"
+    And I should not see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should see "BOOK-0003"
+    # A second filter narrows the report further. The SEMCO booking ID filter matches a part of the ID, so the full ID
+    # does not have to be known.
+    When I set the field "SEMCO booking ID" to "0003"
+    And I press "Apply"
+    Then I should see "Filters (2)"
+    And I should not see "BOOK-0001"
+    And I should not see "BOOK-0002"
+    And I should see "BOOK-0003"
+    # The filters survive a click on a column header, which is what the report needs them to do as the table builds its
+    # sorting links from the report URL.
+    When I click on "Moodle Username" "link" in the "enrolsemco_enrolreport" "table"
+    Then I should see "Filters (2)"
+    And I should not see "BOOK-0001"
+    And I should see "BOOK-0003"
+    # A filter which no enrolment matches empties the report. The report then explains that a filter is the reason for
+    # the empty table and does not claim that there aren't any SEMCO enrolments at all.
+    When I set the field "SEMCO booking ID" to "0815"
+    And I press "Apply"
+    Then I should not see "BOOK-0001"
+    And I should not see "BOOK-0002"
+    And I should not see "BOOK-0003"
+    And I should see "There are not any SEMCO enrolments which match the selected filters"
+    And I should not see "There are not any SEMCO enrolments yet in this Moodle instance"
+    # Resetting brings all enrolments back and empties the menu button again.
+    When I press "Reset all"
+    Then "Filters" "button" should exist
+    And I should not see "Filters (1)"
+    And I should see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should see "BOOK-0003"
+
+  Scenario: The report filters by the enrolment status and by the course completion status
+    Given the following "courses" exist:
+      | fullname | shortname | format | enablecompletion |
+      | Course 3 | C3        | topics | 1                |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid | suspend |
+      | student1 | C3     | BOOK-0001      | 0       |
+      | student2 | C3     | BOOK-0002      | 1       |
+      | student3 | C2     | BOOK-0003      | 0       |
+    And the following "enrol_semco > completions" exist:
+      | user     | course |
+      | student1 | C3     |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # Filtering by the enrolment status keeps the suspended enrolment only.
+    And I set the field "Enrolment status" to "Suspended"
+    And I press "Apply"
+    Then I should not see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should not see "BOOK-0003"
+    # Filtering by the course completion status offers the three states which the matching column shows.
+    When I press "Reset all"
+    And I set the field "Course completion status" to "Completed"
+    And I press "Apply"
+    Then I should see "BOOK-0001"
+    And I should not see "BOOK-0002"
+    And I should not see "BOOK-0003"
+    When I set the field "Course completion status" to "Not completed"
+    And I press "Apply"
+    Then I should not see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should not see "BOOK-0003"
+    # Course 2 does not have course completion enabled, so its enrolment is the one which cannot be completed at all.
+    When I set the field "Course completion status" to "Completion is not enabled"
+    And I press "Apply"
+    Then I should not see "BOOK-0001"
+    And I should not see "BOOK-0002"
+    And I should see "BOOK-0003"
+
+  Scenario: The filter menu only offers the filters whose column the report shows
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    # With all optional columns enabled, the menu offers a filter for each of them.
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    Then "Course name" "field" should exist
+    And "Enrolment status" "field" should exist
+    And "Course completion status" "field" should exist
+    And "SEMCO booking ID" "field" should exist
+    # Switching off the optional columns takes their filters with them. The SEMCO booking ID column is not optional, so
+    # its filter stays.
+    Given the following config values are set as admin:
+      | reportoptionalcolumns |  | enrol_semco |
+    When I am on the "enrol_semco > report" page
+    Then "Course name" "field" should not exist
+    And "Enrolment status" "field" should not exist
+    And "Course completion status" "field" should not exist
+    And "SEMCO booking ID" "field" should exist
+
+  Scenario: The report does not offer the link which resets the table preferences
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    Then "Reset table preferences" "link" should not exist
+    # The link would be offered by tablelib as soon as a table preference is set, which is why an initial is picked here.
+    When I click on "A" "link_exact" in the "First name" "core_course > initials bar"
+    Then I should see "Alice Apple"
+    And "Reset table preferences" "link" should not exist
 
   Scenario Outline: The admin controls the column by which the report is sorted initially
     # The SEMCO IDs of the three enrolments are picked so that every sorting column yields an order of its own, just as
