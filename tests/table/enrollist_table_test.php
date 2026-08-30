@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace enrol_semco;
+namespace enrol_semco\table;
+
+use enrol_semco\external;
 
 /**
  * Enrolment method "SEMCO" - PHPUnit tests for the enrolment report table.
@@ -27,7 +29,7 @@ namespace enrol_semco;
 /**
  * The enrollist_table_test class.
  *
- * @covers \enrol_semco\enrollist_table
+ * @covers \enrol_semco\table\enrollist_table
  *
  * @package    enrol_semco
  * @copyright  2026 Alexander Bias <bias@alexanderbias.de>
@@ -102,7 +104,7 @@ final class enrollist_table_test extends \advanced_testcase {
      *
      * @param bool $sitecompletion Whether course completion is enabled site wide.
      * @dataProvider coursecompletion_columns_provider
-     * @covers \enrol_semco\enrollist_table::other_cols
+     * @covers \enrol_semco\table\enrollist_table::other_cols
      */
     public function test_coursecompletion_columns_match_webservice(bool $sitecompletion): void {
         global $CFG;
@@ -291,7 +293,7 @@ final class enrollist_table_test extends \advanced_testcase {
      * @param string $displaytype The identifier of the grade display type to be configured in the course.
      * @param string $expectedpattern A pattern which the shown grade has to match for this display type.
      * @dataProvider coursecompletiongrade_displaytype_provider
-     * @covers \enrol_semco\enrollist_table::format_coursegrade
+     * @covers \enrol_semco\table\enrollist_table::format_coursegrade
      */
     public function test_coursecompletiongrade_column_matches_webservice(string $displaytype, string $expectedpattern): void {
         // Create a course which has course completion enabled.
@@ -364,7 +366,7 @@ final class enrollist_table_test extends \advanced_testcase {
      * the report by this column groups the enrolments by their status. Sorting by the raw course completion time would
      * not be able to tell the two states apart which do not have a completion time.
      *
-     * @covers \enrol_semco\enrollist_table::__construct
+     * @covers \enrol_semco\table\enrollist_table::__construct
      */
     public function test_coursecompletionstatus_column_is_sortable_by_status(): void {
         // Create a course which has course completion enabled and one which has it disabled.
@@ -417,6 +419,304 @@ final class enrollist_table_test extends \advanced_testcase {
             [$enrolids['notenabled'], $enrolids['notcompleted'], $enrolids['completed']],
             $sortedenrolids
         );
+    }
+
+    /**
+     * Create a fixture of SEMCO enrolments which differ in every aspect which the report can be filtered by.
+     *
+     * The enrolments are told apart by their SEMCO booking ID, which is what the filter tests below assert on.
+     *
+     * @return \stdClass The courses of the fixture.
+     */
+    private function create_filter_fixture(): \stdClass {
+        // Create a course which has course completion enabled and one which has it disabled.
+        $completioncourse = $this->getDataGenerator()->create_course([
+            'fullname' => 'Completion course',
+            'shortname' => 'cc1',
+            'enablecompletion' => COMPLETION_ENABLED,
+        ]);
+        $nocompletioncourse = $this->getDataGenerator()->create_course([
+            'fullname' => 'No completion course',
+            'shortname' => 'nc1',
+            'enablecompletion' => COMPLETION_DISABLED,
+        ]);
+
+        // BOOK-0001: completed, active, in the completion course.
+        $completeduser = $this->getDataGenerator()->create_user(['email' => 'anna@example.com']);
+        $this->semcogenerator->create_enrolment([
+            'userid' => $completeduser->id,
+            'courseid' => $completioncourse->id,
+            'semcobookingid' => 'BOOK-0001',
+            'semcouserid' => 'SEMCO-1001',
+        ]);
+        $this->semcogenerator->create_completion([
+            'userid' => $completeduser->id,
+            'courseid' => $completioncourse->id,
+        ]);
+
+        // BOOK-0002: not completed, suspended, in the completion course.
+        $suspendeduser = $this->getDataGenerator()->create_user(['email' => 'BERND@example.com']);
+        $this->semcogenerator->create_enrolment([
+            'userid' => $suspendeduser->id,
+            'courseid' => $completioncourse->id,
+            'semcobookingid' => 'BOOK-0002',
+            'semcouserid' => 'SEMCO-1002',
+            'suspend' => true,
+        ]);
+
+        // BOOK-0003: course completion not enabled, active, in the other course.
+        $othercourseuser = $this->getDataGenerator()->create_user(['email' => 'clara@elsewhere.org']);
+        $this->semcogenerator->create_enrolment([
+            'userid' => $othercourseuser->id,
+            'courseid' => $nocompletioncourse->id,
+            'semcobookingid' => 'BOOK-0003',
+            'semcouserid' => 'OTHER-2003',
+        ]);
+
+        return (object) ['completioncourse' => $completioncourse, 'nocompletioncourse' => $nocompletioncourse];
+    }
+
+    /**
+     * Data provider for test_filters_narrow_the_report.
+     *
+     * The course filter is not part of it as its value is a course ID which is only known once the fixture has been
+     * created, see test_the_course_filter_narrows_the_report().
+     *
+     * @return array
+     */
+    public static function filter_provider(): array {
+        return [
+            'Email address, full value' => ['email', 'anna@example.com', ['BOOK-0001']],
+            'Email address, substring' => ['email', 'example.com', ['BOOK-0001', 'BOOK-0002']],
+            'Email address, other case' => ['email', 'bernd@EXAMPLE.com', ['BOOK-0002']],
+            'Email address, no match' => ['email', 'nobody@example.com', []],
+            'SEMCO user ID, full value' => ['semcouserid', 'SEMCO-1001', ['BOOK-0001']],
+            'SEMCO user ID, substring' => ['semcouserid', 'SEMCO-100', ['BOOK-0001', 'BOOK-0002']],
+            'SEMCO booking ID, full value' => ['semcobookingid', 'BOOK-0002', ['BOOK-0002']],
+            'SEMCO booking ID, substring' => ['semcobookingid', 'BOOK-000', ['BOOK-0001', 'BOOK-0002', 'BOOK-0003']],
+            'Enrolment status, active' => ['enrolstatus', 'active', ['BOOK-0001', 'BOOK-0003']],
+            'Enrolment status, suspended' => ['enrolstatus', 'suspended', ['BOOK-0002']],
+            'Completion status, completed' => ['completionstatus', 'completed', ['BOOK-0001']],
+            'Completion status, not completed' => ['completionstatus', 'notcompleted', ['BOOK-0002']],
+            'Completion status, not enabled' => ['completionstatus', 'notenabled', ['BOOK-0003']],
+        ];
+    }
+
+    /**
+     * Test that each filter of the report narrows the shown enrolments as expected.
+     *
+     * @param string $filtername The name of the filter.
+     * @param string $filtervalue The value to filter by.
+     * @param array $expectedbookingids The SEMCO booking IDs which the report is expected to show.
+     * @dataProvider filter_provider
+     * @covers \enrol_semco\table\enrollist_table::set_table_sql
+     */
+    public function test_filters_narrow_the_report(string $filtername, string $filtervalue, array $expectedbookingids): void {
+        $this->create_filter_fixture();
+
+        // Without any filter, the report shows all enrolments of the fixture.
+        $this->assertEqualsCanonicalizing(['BOOK-0001', 'BOOK-0002', 'BOOK-0003'], $this->get_report_bookingids());
+
+        // With the filter, it shows the expected ones.
+        $this->assertEqualsCanonicalizing($expectedbookingids, $this->get_report_bookingids([$filtername => $filtervalue]));
+    }
+
+    /**
+     * Test that the course filter narrows the shown enrolments to the picked course.
+     *
+     * @covers \enrol_semco\table\enrollist_table::set_table_sql
+     */
+    public function test_the_course_filter_narrows_the_report(): void {
+        $courses = $this->create_filter_fixture();
+
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001', 'BOOK-0002'],
+            $this->get_report_bookingids(['course' => (int) $courses->completioncourse->id])
+        );
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0003'],
+            $this->get_report_bookingids(['course' => (int) $courses->nocompletioncourse->id])
+        );
+    }
+
+    /**
+     * Test that several filters are combined, i.e. that only the enrolments which match all of them are shown.
+     *
+     * @covers \enrol_semco\table\enrollist_table::set_table_sql
+     */
+    public function test_filters_are_combined(): void {
+        $courses = $this->create_filter_fixture();
+
+        // Each filter on its own keeps two enrolments, together they keep the one which matches both.
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001', 'BOOK-0002'],
+            $this->get_report_bookingids(['course' => (int) $courses->completioncourse->id])
+        );
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001', 'BOOK-0003'],
+            $this->get_report_bookingids(['enrolstatus' => 'active'])
+        );
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001'],
+            $this->get_report_bookingids(['course' => (int) $courses->completioncourse->id, 'enrolstatus' => 'active'])
+        );
+
+        // A combination which no enrolment matches leaves the report empty.
+        $this->assertEmpty($this->get_report_bookingids([
+            'course' => (int) $courses->nocompletioncourse->id,
+            'enrolstatus' => 'suspended',
+        ]));
+    }
+
+    /**
+     * Test that a filter is not offered anymore as soon as the admin has switched off the column which it filters.
+     *
+     * @covers \enrol_semco\table\enrollist_table::get_available_filter_names
+     */
+    public function test_available_filters_follow_the_optional_columns_setting(): void {
+        // As long as the setting has not been stored, all filters are offered.
+        $this->assertSame(
+            array_keys(enrollist_table::get_filter_names()),
+            array_keys(enrollist_table::get_available_filter_names())
+        );
+
+        // Enabling just one of the optional columns which a filter works on leaves the filters of the other optional
+        // columns out. The SEMCO booking ID and the email address filters stay as their columns are not optional.
+        set_config('reportoptionalcolumns', 'course', 'enrol_semco');
+        $this->assertEqualsCanonicalizing(
+            ['email', 'semcouserid', 'semcobookingid', 'course'],
+            array_keys(enrollist_table::get_available_filter_names())
+        );
+
+        // Disabling all optional columns leaves the filters of the non optional columns only.
+        set_config('reportoptionalcolumns', '', 'enrol_semco');
+        $this->assertEqualsCanonicalizing(
+            ['email', 'semcouserid', 'semcobookingid'],
+            array_keys(enrollist_table::get_available_filter_names())
+        );
+    }
+
+    /**
+     * Test that a filter of a switched off column does not narrow the report either.
+     *
+     * The filter menu does not offer such a filter anymore, but its parameter could still be left over in a bookmarked
+     * report URL.
+     *
+     * @covers \enrol_semco\table\enrollist_table::set_table_sql
+     */
+    public function test_a_filter_of_a_disabled_column_does_not_narrow_the_report(): void {
+        $this->create_filter_fixture();
+
+        // With the enrolment status column enabled, the filter narrows the report.
+        $this->assertEqualsCanonicalizing(['BOOK-0002'], $this->get_report_bookingids(['enrolstatus' => 'suspended']));
+
+        // With the column switched off, the very same filter is ignored.
+        set_config('reportoptionalcolumns', '', 'enrol_semco');
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001', 'BOOK-0002', 'BOOK-0003'],
+            $this->get_report_bookingids(['enrolstatus' => 'suspended'])
+        );
+    }
+
+    /**
+     * Data provider for test_an_unknown_filter_value_is_ignored.
+     *
+     * @return array
+     */
+    public static function unknown_filter_value_provider(): array {
+        return [
+            'Enrolment status' => ['filtername' => 'enrolstatus'],
+            'Completion status' => ['filtername' => 'completionstatus'],
+        ];
+    }
+
+    /**
+     * Test that a filter value which the filter does not know at all is ignored instead of breaking the report.
+     *
+     * The filter menu only offers the values which the matching filter knows, but an arbitrary value can still reach the
+     * table through a bookmarked report URL or through the webservice which delivers the table content. Such a value has
+     * to leave the report untouched, just as an unknown filter does.
+     *
+     * @param string $filtername The name of the filter.
+     * @dataProvider unknown_filter_value_provider
+     * @covers \enrol_semco\table\enrollist_table::get_filter_values
+     */
+    public function test_an_unknown_filter_value_is_ignored(string $filtername): void {
+        $this->create_filter_fixture();
+
+        // The report still shows all enrolments of the fixture.
+        $this->assertEqualsCanonicalizing(
+            ['BOOK-0001', 'BOOK-0002', 'BOOK-0003'],
+            $this->get_report_bookingids([$filtername => 'thisisnotastatus'])
+        );
+
+        // And the value does not end up in the report URL either, as it does not filter anything.
+        $table = $this->build_report_table([$filtername => 'thisisnotastatus']);
+        $this->assertSame([], $table->get_filter_params());
+    }
+
+    /**
+     * Test that the applied filters end up in the report URL, so that they survive a download of the table.
+     *
+     * @covers \enrol_semco\table\enrollist_table::get_filter_params
+     */
+    public function test_the_applied_filters_are_part_of_the_report_url(): void {
+        $courses = $this->create_filter_fixture();
+
+        // Without any filter, the report URL does not carry any filter parameter.
+        $table = $this->build_report_table();
+        $this->assertSame([], $table->get_filter_params());
+        $this->assertStringNotContainsString('filter', $table->baseurl->out(false));
+
+        // With filters, the URL carries them under their parameter names.
+        $table = $this->build_report_table([
+            'course' => (int) $courses->completioncourse->id,
+            'enrolstatus' => 'suspended',
+        ]);
+        $this->assertSame(
+            ['filtercourse' => (int) $courses->completioncourse->id, 'filterenrolstatus' => 'suspended'],
+            $table->get_filter_params()
+        );
+        $this->assertStringContainsString('filtercourse=' . $courses->completioncourse->id, $table->baseurl->out(false));
+        $this->assertStringContainsString('filterenrolstatus=suspended', $table->baseurl->out(false));
+    }
+
+    /**
+     * Build the enrolment report table with the given filters, the same way as enrolreport.php does it.
+     *
+     * @param array $filters The filter values, keyed by the filter name.
+     * @return enrollist_table The table.
+     */
+    private function build_report_table(array $filters = []): enrollist_table {
+        $table = new enrollist_table('enrol_semco_enrolreport_test', '');
+
+        // Hand the filters over as a filterset, which is the way a dynamic table takes them.
+        $filterset = new enrollist_table_filterset();
+        foreach ($filters as $filtername => $filtervalue) {
+            $filterset->add_filter_from_params($filtername, null, [$filtervalue]);
+        }
+        $table->set_filterset($filterset);
+
+        return $table;
+    }
+
+    /**
+     * Build the enrolment report table with the given filters and pick the SEMCO booking IDs which it shows.
+     *
+     * @param array $filters The filter values, keyed by the filter name.
+     * @return array The shown SEMCO booking IDs.
+     */
+    private function get_report_bookingids(array $filters = []): array {
+        $table = $this->build_report_table($filters);
+        $table->setup();
+        $table->query_db(100, false);
+
+        $bookingids = [];
+        foreach ($table->rawdata as $row) {
+            $bookingids[] = $row->semcobookingid;
+        }
+
+        return $bookingids;
     }
 
     /**

@@ -1,0 +1,68 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template enrol_semco/enrolreport_filters
+
+    Filter menu of the SEMCO enrolment report.
+
+    The markup follows the filter menu of the Moodle core report builder (see
+    core_reportbuilder/local/filters/area): A button which carries the number of the currently applied filters opens a
+    dropdown which holds the filter form. The dropdown is closed by the Bootstrap default behaviour, but not when the
+    user clicks inside it, which is what data-bs-auto-close="outside" is for.
+
+    Context variables required for this template:
+    * filtersform - The rendered HTML of the filter form.
+    * filtersapplied - The number of filters which are currently applied (0 if there is none).
+
+    Example context (json):
+    {
+        "filtersform": "<form>...</form>",
+        "filtersapplied": 2
+    }
+}}
+{{!
+    The dropdown class on the wrapper is not decoration: It makes the wrapper the positioned ancestor of the dropdown
+    menu, which is what Bootstrap expects and what the width of the menu is resolved against.
+}}
+<div class="enrol_semco-filters dropdown d-flex justify-content-end mb-3">
+    <button class="btn btn-outline-secondary"
+            type="button"
+            id="enrol_semco-filters-button"
+            data-bs-toggle="dropdown"
+            data-bs-auto-close="outside"
+            aria-haspopup="true"
+            aria-expanded="false"
+            title="{{#str}} filters, moodle {{/str}}"
+    >
+        {{#pix}} i/filter, core {{/pix}}
+        <span data-region="filter-button-label">
+            {{#filtersapplied}} {{#str}} filtersappliedx, core_reportbuilder, {{filtersapplied}} {{/str}} {{/filtersapplied}}
+            {{^filtersapplied}} {{#str}} filters, moodle {{/str}} {{/filtersapplied}}
+        </span>
+    </button>
+    <div class="enrol_semco-filters-dropdown dropdown-menu dropdown-menu-end moodle-has-zindex"
+         aria-labelledby="enrol_semco-filters-button"
+    >
+        {{!
+            The body scrolls while the action buttons of the form stay put: The stylesheet lifts them out of this
+            scrolling area into a footer which is positioned against the dropdown itself.
+        }}
+        <div class="enrol_semco-filters-body px-3 pt-3">
+            {{{filtersform}}}
+        </div>
+    </div>
+</div>

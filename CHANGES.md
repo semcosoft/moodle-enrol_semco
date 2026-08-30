@@ -6,6 +6,8 @@ Changes
 
 ### Unreleased
 
+* 2026-08-30 - Improvement: Add a filter for email address, SEMCO user ID, SEMCO booking ID, course, enrolment status and course completion status to the SEMCO enrolment report
+* 2026-08-30 - Improvement: Convert the SEMCO enrolment report table into a dynamic table which updates its content with a webservice call instead of a page reload when it is paged or sorted
 * 2026-08-30 - Improvement: Replace the 'View course profile' button in the SEMCO enrolment report table with a kebab menu which also offers the user's site wide profile and the user's course grades.
 * 2026-08-30 - Improvement: Show the 'SEMCO User company', 'SEMCO User birthday', 'SEMCO User place of birth' and 'SEMCO Tenant shortname' user profile fields in own columns of the SEMCO enrolment report table
 * 2026-08-30 - Improvement: Add the 'Optional report columns' setting which controls which of the optional columns the SEMCO enrolment report table shows. Doing this, the possibility to let the user hide particular columns from the report was removed for the sake of simplicity

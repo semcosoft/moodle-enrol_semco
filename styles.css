@@ -1,0 +1,121 @@
+/*
+ * Enrolment method "SEMCO" - Styles
+ *
+ * @package    enrol_semco
+ * @copyright  2026 Alexander Bias <bias@alexanderbias.de>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/*
+ * Filter menu of the enrolment report.
+ *
+ * The menu rebuilds the look of the Moodle core report builder filter menu with the measures from
+ * theme/boost/scss/moodle/reportbuilder.scss. Those styles cannot be reused as they are scoped to the report builder's
+ * own wrapper element.
+ */
+
+/*
+ * From the medium breakpoint on, the menu is lifted next to the table's initials bar. It cannot be placed there by a
+ * layout: The initials bar is not a sibling of the menu but a child of the table wrapper, which the dynamic table
+ * replaces on every update.
+ */
+@media (min-width: 768px) {
+    .enrol_semco-reportheader {
+        position: relative;
+    }
+
+    .enrol_semco-reportheader .enrol_semco-filters {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1;
+        margin-bottom: 0;
+    }
+
+    /* Keep the letters of the initials bar clear of the menu button. */
+    .enrol_semco-reportheader .initialbar {
+        padding-right: 9rem;
+    }
+}
+
+/*
+ * The bottom padding reserves the space for the footer which is lifted into it below. The wrapper class is part of the
+ * selector to beat the theme's '.dropdown-menu { width: fit-content }'.
+ */
+.enrol_semco-filters .enrol_semco-filters-dropdown {
+    width: 27rem;
+    max-width: 90vw;
+    padding: 0 0 4rem 0;
+    overflow: hidden;
+}
+
+/* The scrolling filter list. Its bottom border is the separator above the footer. */
+.enrol_semco-filters-body {
+    max-height: 30rem;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--bs-dropdown-border-color, #dee2e6);
+}
+
+/*
+ * Each filter becomes a block of its own. The margins have to be reset as a form item is a Bootstrap row whose negative
+ * gutter margins would pull the content out of the menu's padding.
+ */
+.enrol_semco-filters-body .mform > .fitem:not([data-groupname="buttonar"]) {
+    margin: 0 0 1rem 0;
+    padding: 0 0 1rem 0;
+    border-bottom: 1px solid var(--bs-dropdown-border-color, #dee2e6);
+}
+
+/* The last filter needs no line of its own, the scrolling area draws one right below it. */
+.enrol_semco-filters-body .mform > .fitem:has(+ .fitem[data-groupname="buttonar"]) {
+    border-bottom: 0;
+}
+
+/*
+ * Label and field are stacked instead of sitting in two grid columns, which would be far too narrow here. This needs the
+ * width property as the columns carry Bootstrap's own width.
+ */
+.enrol_semco-filters-body .mform .fitem > .col-md-3,
+.enrol_semco-filters-body .mform .fitem > .col-md-9 {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* The fields do not fill their column on their own, they are sized by their content otherwise. */
+.enrol_semco-filters-body .mform .fitem select,
+.enrol_semco-filters-body .mform .fitem input[type="text"] {
+    width: 100%;
+}
+
+/*
+ * The action buttons become the footer of the menu. They are positioned against the dropdown and not against the
+ * scrolling area around them, which is what keeps them in place while the filters scroll. The margin reset needs
+ * !important to beat Bootstrap's mb-3 utility class.
+ */
+.enrol_semco-filters-body .mform .fitem[data-groupname="buttonar"] {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4rem;
+    align-items: center;
+    padding: 0 1rem;
+    margin: 0 !important; /* stylelint-disable-line declaration-no-important */
+}
+
+/* The group label is only there for screen readers. The !important beats Bootstrap's d-flex utility class. */
+.enrol_semco-filters-body .mform .fitem[data-groupname="buttonar"] > .col-md-3 {
+    display: none !important; /* stylelint-disable-line declaration-no-important */
+}
+
+
+/*
+ * Download menu of the enrolment report.
+ */
+
+/* The download widget should get some space to the main table. */
+#page-enrol-semco-enrolreport .dataformatselector {
+    margin-top: 2rem !important; /* stylelint-disable-line declaration-no-important */
+}
