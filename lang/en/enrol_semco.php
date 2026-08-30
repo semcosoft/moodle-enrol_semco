@@ -60,7 +60,15 @@ $string['settings_wwwrootinfofound'] = 'The Moodle base URL for the SEMCO webser
 // Enrolment report.
 $string['reportpagetitle'] = 'SEMCO enrolments';
 $string['emptytable'] = 'There are not any SEMCO enrolments yet in this Moodle instance.';
-$string['emptytablefiltered'] = 'There are not any SEMCO enrolments which match the selected initials.';
+$string['emptytablefiltered'] = 'There are not any SEMCO enrolments which match the selected filters.';
+// The strings of the text filters are not used as labels anywhere as these filters are labelled with the string of the
+// matching report column. They are the headings of the help texts below them, which a help button always needs.
+$string['filteremail'] = 'Email address';
+$string['filteremail_help'] = 'Enter a part of an email address to show only the enrolments whose user has an email address which contains the entered text. Leave the field empty to show the enrolments of all users.';
+$string['filtersemcobookingid'] = 'SEMCO booking ID';
+$string['filtersemcobookingid_help'] = 'Enter a part of a SEMCO booking ID to show only the enrolments whose booking ID contains the entered text. Leave the field empty to show the enrolments of all booking IDs.';
+$string['filtersemcouserid'] = 'SEMCO User ID';
+$string['filtersemcouserid_help'] = 'Enter a part of a SEMCO user ID to show only the enrolments whose user has a SEMCO user ID which contains the entered text. Leave the field empty to show the enrolments of all users.';
 $string['tablecoursecompletiondate'] = 'Course completion date';
 $string['tablecoursecompletiongrade'] = 'Course completion grade';
 $string['tablecoursecompletionstatus'] = 'Course completion status';
