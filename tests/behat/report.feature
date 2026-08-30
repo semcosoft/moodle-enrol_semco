@@ -298,6 +298,42 @@ Feature: SEMCO enrolment report
     And I should see "SEMCO booking ID"
     And I should see "View course profile"
 
+  Scenario: The report shows the SEMCO user profile fields of the enrolled user
+    # The five SEMCO user profile fields are created by this plugin during its installation, but they are filled by SEMCO
+    # through the core webservices. The user generator fills them here, which is why this scenario brings its own user
+    # instead of using one of the three students from the background.
+    Given the following "users" exist:
+      | username | firstname | lastname | email                | profile_field_semco_userid | profile_field_semco_usercompany | profile_field_semco_userbirthday | profile_field_semco_userplaceofbirth | profile_field_semco_branchtoken |
+      | student4 | Carl      | Cook     | student4@example.com | SEMCO-4711                 | ACME Corp                       | 1980-01-23                       | Springfield                          | TENANT-42                       |
+    And the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student4 | C1     | BOOK-0001      |
+    # Four of the five profile field columns are optional columns, so they are enabled explicitly here. The setting is
+    # stored with all optional columns enabled when the site is installed, but a site which was installed before these
+    # four columns existed does not know about them, which is exactly the case for the Behat test site.
+    And the following config values are set as admin:
+      | reportoptionalcolumns | semcousercompany,semcouserbirthday,semcouserplaceofbirth,semcotenantshortname | enrol_semco |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # Each of the five profile fields is shown in a column of its own.
+    Then the following should exist in the "enrolsemco_enrolreport" table:
+      | Moodle Username | SEMCO User ID | SEMCO User company | SEMCO User birthday | SEMCO User place of birth | SEMCO Tenant shortname |
+      | student4        | SEMCO-4711    | ACME Corp          | 1980-01-23          | Springfield               | TENANT-42              |
+    # Disabling the four optional columns removes them from the report. The SEMCO user ID is not optional as the report
+    # can be sorted by it, so it stays.
+    Given the following config values are set as admin:
+      | reportoptionalcolumns |  | enrol_semco |
+    When I am on the "enrol_semco > report" page
+    Then I should see "SEMCO User ID"
+    And I should see "SEMCO-4711"
+    And I should not see "SEMCO User company"
+    And I should not see "ACME Corp"
+    And I should not see "SEMCO User birthday"
+    And I should not see "1980-01-23"
+    And I should not see "SEMCO User place of birth"
+    And I should not see "Springfield"
+    And I should not see "SEMCO Tenant shortname"
+    And I should not see "TENANT-42"
+
   Scenario: The "View course profile" button opens the enrolled user's profile within the course
     Given the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |

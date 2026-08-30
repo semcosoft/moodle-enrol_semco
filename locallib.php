@@ -381,6 +381,27 @@ function enrol_semco_get_report_sortingcolumns() {
 }
 
 /**
+ * Helper function to get the enrolment report columns which show a SEMCO user profile field.
+ *
+ * The array is keyed by the report column name and holds the shortname of the user profile field which the column shows
+ * as value.
+ *
+ * These fields are created by this plugin during its installation, but they are filled by SEMCO through the core
+ * webservices. The report just shows what SEMCO has stored there.
+ *
+ * @return array The user profile field columns, keyed by the report column name.
+ */
+function enrol_semco_get_report_userfieldcolumns() {
+    return [
+            'semcouserid' => ENROL_SEMCO_USERFIELD1NAME,
+            'semcousercompany' => ENROL_SEMCO_USERFIELD2NAME,
+            'semcouserbirthday' => ENROL_SEMCO_USERFIELD3NAME,
+            'semcouserplaceofbirth' => ENROL_SEMCO_USERFIELD4NAME,
+            'semcotenantshortname' => ENROL_SEMCO_USERFIELD5NAME,
+    ];
+}
+
+/**
  * Helper function to get the enrolment report columns which the admin can show or hide with the 'reportoptionalcolumns'
  * admin setting.
  *
@@ -392,6 +413,10 @@ function enrol_semco_get_report_sortingcolumns() {
  */
 function enrol_semco_get_report_optionalcolumns() {
     return [
+            'semcousercompany' => get_string('installer_userfield2fullname', 'enrol_semco'),
+            'semcouserbirthday' => get_string('installer_userfield3fullname', 'enrol_semco'),
+            'semcouserplaceofbirth' => get_string('installer_userfield4fullname', 'enrol_semco'),
+            'semcotenantshortname' => get_string('installer_userfield5fullname', 'enrol_semco'),
             'enrolid' => get_string('tableenrolid', 'enrol_semco'),
             'courseid' => get_string('tablecourseid', 'enrol_semco'),
             'course' => get_string('tablecoursename', 'enrol_semco'),
