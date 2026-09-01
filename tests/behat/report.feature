@@ -277,6 +277,40 @@ Feature: SEMCO enrolment report
     And I should see "BOOK-0002"
     And I should see "BOOK-0003"
 
+  @javascript
+  Scenario: The filter menu is a dropdown and the filters survive a sorting click on the dynamic table
+    # The scenario above covers the filtering itself without JavaScript, where the filter form is simply part of the page
+    # and where every sorting click reloads the page. This scenario covers what only exists with JavaScript enabled: the
+    # filter menu is a dropdown which has to be opened, and the report is a dynamic table which fetches its content with
+    # a webservice call instead of reloading the page.
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+      | student2 | C2     | BOOK-0002      |
+      | student3 | C2     | BOOK-0003      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The filters are behind the menu button and are not reachable before it is clicked.
+    Then "Course name" "field" should not be visible
+    When I click on "Filters" "button"
+    Then "Course name" "field" should be visible
+    # Filtering works from within the dropdown and narrows the report to the picked course.
+    When I set the field "Course name" to "Course 2"
+    And I press "Apply"
+    Then I should see "Filters (1)"
+    And I should not see "BOOK-0001"
+    And I should see "BOOK-0002"
+    And I should see "BOOK-0003"
+    # Out of the box, the report is sorted by the last name, which puts Zoe Ant before Bert Beer.
+    And "BOOK-0003" "text" should appear before "BOOK-0002" "text"
+    # Sorting the report by another column really re-orders the shown enrolments and keeps the filter.
+    When I click on "Moodle Username" "link" in the "enrolsemco_enrolreport" "table"
+    Then "BOOK-0002" "text" should appear before "BOOK-0003" "text"
+    And I should see "Filters (1)"
+    And I should not see "BOOK-0001"
+    # And it happened without a page reload: The table handed the filters over to the webservice within its own markup,
+    # so the sorting parameter which a reloading table would add never reached the report URL.
+    And the url should match "^(?!.*tsort).*enrolreport\.php"
+
   Scenario: The report filters by the enrolment status and by the course completion status
     Given the following "courses" exist:
       | fullname | shortname | format | enablecompletion |
@@ -474,6 +508,26 @@ Feature: SEMCO enrolment report
     And "View user profile" "link" should exist in the "student1" "table_row"
     And "View course profile" "link" should exist in the "student1" "table_row"
     And "View course grades" "link" should exist in the "student1" "table_row"
+
+  @javascript
+  Scenario: The actions kebab menu opens its items when JavaScript is enabled
+    # The scenarios around this one look the menu items up in the markup without JavaScript, which cannot tell whether
+    # the menu really opens. This scenario clicks the kebab trigger in a browser and checks that the items become
+    # reachable and lead where they say.
+    Given the following "enrol_semco > enrolments" exist:
+      | user     | course | semcobookingid |
+      | student1 | C1     | BOOK-0001      |
+    When I am on the "enrol_semco > report" page logged in as "manager"
+    # The items are in the markup right away, but they are hidden until the kebab trigger is clicked.
+    Then "View user profile" "link" should not be visible
+    When I click on "Actions" "link" in the "student1" "table_row"
+    Then "View user profile" "link" should be visible
+    And "View course profile" "link" should be visible
+    And "View course grades" "link" should be visible
+    # And an item really navigates to the page which it names.
+    When I click on "View user profile" "link" in the "student1" "table_row"
+    Then "body#page-user-profile" "css_element" should exist
+    And I should see "Alice Apple"
 
   Scenario: The kebab menu leads to the enrolled user's site wide profile
     Given the following "enrol_semco > enrolments" exist:
