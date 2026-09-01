@@ -1029,8 +1029,11 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         // Compose the list of course names.
         $courselist = [];
         foreach ($courses as $course) {
-            $courselist[$course->id] = format_string($course->fullname, true,
-                    ['context' => \core\context\course::instance($course->id)]);
+            $courselist[$course->id] = format_string(
+                $course->fullname,
+                true,
+                ['context' => \core\context\course::instance($course->id)]
+            );
         }
 
         return $courselist;

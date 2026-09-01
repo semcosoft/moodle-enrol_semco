@@ -82,7 +82,7 @@ class enrolreport_filter_form extends \moodleform {
         );
         // The group carries a label for screen readers, which the stylesheet hides visually.
         $mform->addGroup($buttons, 'buttonar', get_string('formactions', 'core_form'), '', false)
-                ->setHiddenLabel(true);
+            ->setHiddenLabel(true);
     }
 
     /**
