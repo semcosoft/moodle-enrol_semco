@@ -88,10 +88,10 @@ if ($ADMIN->fulltree) {
     $name = 'enrol_semco/settings_enrolmentreportbutton';
     $title = get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true);
     $description = \core\output\html_writer::link(
-                $reporturl,
-                get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
-                ['class' => 'btn btn-secondary mb-2']
-            ) .
+        $reporturl,
+        get_string('settings_enrolmentreportbutton', 'enrol_semco', null, true),
+        ['class' => 'btn btn-secondary mb-2']
+    ) .
             '<p>' . get_string('settings_enrolmentreportheading_desc', 'enrol_semco', null, true) . '</p>';
     $setting = new admin_setting_description($name, $title, $description);
     $settings->add($setting);
