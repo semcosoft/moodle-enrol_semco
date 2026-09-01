@@ -529,10 +529,18 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         // i.e. it is put through format_string() with the context of the page which shows it. Without this, a field
         // value which carries a multilang span would show all of its language variants at once and any other markup
         // within the value would be rendered as markup instead of being shown as it is.
-        // A user who does not have a value in the field at all yields null here, which format_string() turns into an
-        // empty string, i.e. such a cell stays empty.
         if (array_key_exists($column, enrol_semco_get_report_userfieldcolumns())) {
-            return format_string($row->$column, true, ['context' => $this->get_context()]);
+            $fieldvalue = format_string($row->$column, true, ['context' => $this->get_context()]);
+
+            // A user who does not have a value in the field at all yields null here, which format_string() turns into
+            // an empty string. Such a cell shows the placeholder instead of staying empty, just as the course
+            // completion columns do it: An empty cell leaves the reader wondering whether the value is missing or
+            // whether the report failed to show it.
+            if ($fieldvalue === '') {
+                return self::EMPTYCELL;
+            }
+
+            return $fieldvalue;
         }
 
         // Inject suspended column.
