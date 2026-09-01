@@ -667,7 +667,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         if (user_can_view_profile($user)) {
             $menu->add(new \core\output\action_menu\link_secondary(
                 new \core\url('/user/profile.php', ['id' => $row->moodleuserid]),
-                new \core\output\pix_icon('t/viewuserprofile', '', 'enrol_semco'),
+                new \core\output\pix_icon('viewuserprofile', '', 'enrol_semco'),
                 get_string('tableviewuserprofile', 'enrol_semco')
             ));
         }
@@ -676,7 +676,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         if (user_can_view_profile($user, $course)) {
             $menu->add(new \core\output\action_menu\link_secondary(
                 new \core\url('/user/view.php', ['id' => $row->moodleuserid, 'course' => $row->courseid]),
-                new \core\output\pix_icon('t/viewcourseprofile', '', 'enrol_semco'),
+                new \core\output\pix_icon('viewcourseprofile', '', 'enrol_semco'),
                 get_string('tableviewenrolment', 'enrol_semco')
             ));
         }
@@ -688,7 +688,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
                     '/course/user.php',
                     ['mode' => 'grade', 'id' => $row->courseid, 'user' => $row->moodleuserid]
                 ),
-                new \core\output\pix_icon('t/viewcoursegrades', '', 'enrol_semco'),
+                new \core\output\pix_icon('viewcoursegrades', '', 'enrol_semco'),
                 get_string('tableviewcoursegrades', 'enrol_semco')
             ));
         }
