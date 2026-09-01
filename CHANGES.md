@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-09-01 - Improvement: Support multilanguage course names and SEMCO profile field values when rendering the SEMCO enrolment report
 * 2026-08-30 - Improvement: Add a filter for email address, SEMCO user ID, SEMCO booking ID, course, enrolment status and course completion status to the SEMCO enrolment report
 * 2026-08-30 - Improvement: Convert the SEMCO enrolment report table into a dynamic table which updates its content with a webservice call instead of a page reload when it is paged or sorted
 * 2026-08-30 - Improvement: Replace the 'View course profile' button in the SEMCO enrolment report table with a kebab menu which also offers the user's site wide profile and the user's course grades.
