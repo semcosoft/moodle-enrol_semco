@@ -218,8 +218,8 @@ function enrol_semco_before_standard_top_of_body_html() {
  */
 function enrol_semco_get_fontawesome_icon_map() {
     return [
-        'enrol_semco:t/viewuserprofile' => 'fa-solid fa-user',
-        'enrol_semco:t/viewcourseprofile' => 'fa-solid fa-user-graduate',
-        'enrol_semco:t/viewcoursegrades' => 'fa-solid fa-user-graduate',
+        'enrol_semco:viewuserprofile' => 'fa-solid fa-user',
+        'enrol_semco:viewcourseprofile' => 'fa-solid fa-user-graduate',
+        'enrol_semco:viewcoursegrades' => 'fa-solid fa-user-graduate',
     ];
 }
