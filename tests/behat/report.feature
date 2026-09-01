@@ -426,19 +426,24 @@ Feature: SEMCO enrolment report
     Given the following "users" exist:
       | username | firstname | lastname | email                | profile_field_semco_userid | profile_field_semco_usercompany | profile_field_semco_userbirthday | profile_field_semco_userplaceofbirth | profile_field_semco_branchtoken |
       | student4 | Carl      | Cook     | student4@example.com | SEMCO-4711                 | ACME Corp                       | 1980-01-23                       | Springfield                          | TENANT-42                       |
+    # Student1 from the background is enrolled as well. He does not have any of the five fields filled, which is what
+    # shows how the report renders an empty field.
     And the following "enrol_semco > enrolments" exist:
       | user     | course | semcobookingid |
       | student4 | C1     | BOOK-0001      |
+      | student1 | C1     | BOOK-0002      |
     # Four of the five profile field columns are optional columns, so they are enabled explicitly here. The setting is
     # stored with all optional columns enabled when the site is installed, but a site which was installed before these
     # four columns existed does not know about them, which is exactly the case for the Behat test site.
     And the following config values are set as admin:
       | reportoptionalcolumns | semcousercompany,semcouserbirthday,semcouserplaceofbirth,semcotenantshortname | enrol_semco |
     When I am on the "enrol_semco > report" page logged in as "manager"
-    # Each of the five profile fields is shown in a column of its own.
+    # Each of the five profile fields is shown in a column of its own. A field which the user does not have a value in
+    # shows the same placeholder as an empty course completion column, so that the cell does not stay blank.
     Then the following should exist in the "enrolsemco_enrolreport" table:
       | Moodle Username | SEMCO User ID | SEMCO User company | SEMCO User birthday | SEMCO User place of birth | SEMCO Tenant shortname |
       | student4        | SEMCO-4711    | ACME Corp          | 1980-01-23          | Springfield               | TENANT-42              |
+      | student1        | —             | —                  | —                   | —                         | —                      |
     # Disabling the four optional columns removes them from the report. The SEMCO user ID is not optional as the report
     # can be sorted by it, so it stays.
     Given the following config values are set as admin:

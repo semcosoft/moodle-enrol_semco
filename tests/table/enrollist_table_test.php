@@ -726,6 +726,52 @@ final class enrollist_table_test extends \advanced_testcase {
     }
 
     /**
+     * Test that a SEMCO user profile field which the enrolled user does not have a value in shows the placeholder.
+     *
+     * The report fills such a cell with the same placeholder as the course completion columns use. An empty cell would
+     * leave the reader wondering whether the value is missing or whether the report failed to show it.
+     *
+     * @covers \enrol_semco\table\enrollist_table::other_cols
+     */
+    public function test_an_empty_user_profile_field_shows_the_placeholder(): void {
+        $course = $this->getDataGenerator()->create_course();
+
+        // BOOK-0001: A user who does not have a value in any of the SEMCO user profile fields. The enrolment is
+        // deliberately created without a SEMCO user ID, which is the only one of the five fields which the plugin's
+        // data generator fills.
+        $this->semcogenerator->create_enrolment([
+            'userid' => $this->getDataGenerator()->create_user()->id,
+            'courseid' => $course->id,
+            'semcobookingid' => 'BOOK-0001',
+        ]);
+
+        // BOOK-0002: A user who has a SEMCO user ID, but no value in the four remaining fields.
+        $this->semcogenerator->create_enrolment([
+            'userid' => $this->getDataGenerator()->create_user()->id,
+            'courseid' => $course->id,
+            'semcobookingid' => 'BOOK-0002',
+            'semcouserid' => 'SEMCO-4711',
+        ]);
+
+        // Pick the two rows by their booking ID, as the order in which the report shows them is not what is tested here.
+        $rows = [];
+        foreach ($this->get_report_rows() as $formattedrow) {
+            $rows[$formattedrow['semcobookingid']] = $formattedrow;
+        }
+        $this->assertCount(2, $rows);
+
+        // The user without any value shows the placeholder in each of the five columns.
+        foreach (array_keys(enrol_semco_get_report_userfieldcolumns()) as $userfieldcolumn) {
+            $this->assertSame(enrollist_table::EMPTYCELL, $rows['BOOK-0001'][$userfieldcolumn]);
+        }
+
+        // The other user shows the value which the filled field holds and the placeholder in the empty ones.
+        $this->assertSame('SEMCO-4711', $rows['BOOK-0002']['semcouserid']);
+        $this->assertSame(enrollist_table::EMPTYCELL, $rows['BOOK-0002']['semcousercompany']);
+        $this->assertSame(enrollist_table::EMPTYCELL, $rows['BOOK-0002']['semcotenantshortname']);
+    }
+
+    /**
      * Test that the applied filters end up in the report URL, so that they survive a download of the table.
      *
      * @covers \enrol_semco\table\enrollist_table::get_filter_params
@@ -773,19 +819,38 @@ final class enrollist_table_test extends \advanced_testcase {
     /**
      * Build the enrolment report table and pick the single formatted row which it shows.
      *
-     * The row is formatted the very same way as enrolreport.php formats it, so that the returned cells really are the
-     * ones which an administrator sees in the report.
+     * The test fails if the report shows anything else than exactly one row, as the caller expects a fixture which
+     * yields a single enrolment.
      *
      * @return array The formatted row, keyed by the column name.
      */
     private function get_report_row(): array {
+        $formattedrows = $this->get_report_rows();
+
+        $this->assertCount(1, $formattedrows);
+
+        return $formattedrows[0];
+    }
+
+    /**
+     * Build the enrolment report table and pick all formatted rows which it shows.
+     *
+     * The rows are formatted the very same way as enrolreport.php formats them, so that the returned cells really are
+     * the ones which an administrator sees in the report.
+     *
+     * @return array The formatted rows, each of them keyed by the column name.
+     */
+    private function get_report_rows(): array {
         $table = new enrollist_table('enrol_semco_enrolreport_test', '');
         $table->setup();
         $table->query_db(100, false);
 
-        $this->assertCount(1, $table->rawdata);
+        $formattedrows = [];
+        foreach ($table->rawdata as $row) {
+            $formattedrows[] = $table->format_row($row);
+        }
 
-        return $table->format_row(reset($table->rawdata));
+        return $formattedrows;
     }
 
     /**
