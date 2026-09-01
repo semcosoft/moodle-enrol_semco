@@ -656,6 +656,76 @@ final class enrollist_table_test extends \advanced_testcase {
     }
 
     /**
+     * Test that the course name and the SEMCO user profile fields are put through Moodle's string formatting.
+     *
+     * These are the only report columns which show a value that someone has typed in: The course name is typed by a
+     * teacher and the profile fields are filled by SEMCO. Everything which such a value carries beyond plain text has
+     * to be resolved by format_string() before the report shows it, otherwise the report would render it as markup.
+     *
+     * The multilang filter is what makes this visible in a test: A value which holds several language variants has to
+     * end up in the report with the variant of the reader's language only.
+     *
+     * @covers \enrol_semco\table\enrollist_table::col_course
+     * @covers \enrol_semco\table\enrollist_table::other_cols
+     */
+    public function test_the_course_name_and_the_user_profile_fields_are_formatted(): void {
+        global $CFG, $DB;
+
+        // Switch the multilang filter on site wide and let it filter strings as well, which is what the report's values
+        // are formatted as.
+        $CFG->filterall = true;
+        $CFG->stringfilters = 'multilang';
+        filter_set_global_state('multilang', TEXTFILTER_ON);
+
+        // Compose a value which holds an English and a German variant. The tests run in English, so only the English
+        // variant may end up in the report.
+        $multilang = '<span lang="en" class="multilang">English</span>' .
+                '<span lang="de" class="multilang">Deutsch</span>';
+
+        // Create an enrolment whose course name carries the multilang markup.
+        $course = $this->getDataGenerator()->create_course(['fullname' => 'Course ' . $multilang]);
+        $user = $this->getDataGenerator()->create_user();
+        $this->semcogenerator->create_enrolment([
+            'userid' => $user->id,
+            'courseid' => $course->id,
+            'semcobookingid' => 'BOOK-0001',
+        ]);
+
+        // Fill each of the SEMCO user profile fields with the multilang markup as well. The value is prefixed with the
+        // column name, so that a value which ends up in the wrong column would be noticed.
+        // The values are written straight into the user_info_data table and not through profile_save_data(). Two of the
+        // five fields are only 16 characters long, and profile_save_data() truncates a value to the field's maximum
+        // length, which would cut the multilang markup in the middle. Writing the table directly is what the report
+        // reads anyway, as its SQL query picks the field values from there.
+        $userfieldcolumns = enrol_semco_get_report_userfieldcolumns();
+        foreach ($userfieldcolumns as $userfieldcolumn => $userfieldshortname) {
+            $DB->insert_record('user_info_data', [
+                'userid' => $user->id,
+                'fieldid' => $DB->get_field('user_info_field', 'id', ['shortname' => $userfieldshortname], MUST_EXIST),
+                'data' => $userfieldcolumn . ' ' . $multilang,
+                'dataformat' => FORMAT_MOODLE,
+            ]);
+        }
+
+        // Render the report row.
+        $formattedrow = $this->get_report_row();
+
+        // The course column shows the English variant of the course name.
+        $this->assertStringContainsString('Course English', $formattedrow['course']);
+
+        // And so does each of the SEMCO user profile field columns.
+        foreach (array_keys($userfieldcolumns) as $userfieldcolumn) {
+            $this->assertSame($userfieldcolumn . ' English', $formattedrow[$userfieldcolumn]);
+        }
+
+        // None of these columns leaks the other language variant or the multilang markup itself.
+        foreach (array_merge(['course'], array_keys($userfieldcolumns)) as $column) {
+            $this->assertStringNotContainsString('Deutsch', $formattedrow[$column]);
+            $this->assertStringNotContainsString('multilang', $formattedrow[$column]);
+        }
+    }
+
+    /**
      * Test that the applied filters end up in the report URL, so that they survive a download of the table.
      *
      * @covers \enrol_semco\table\enrollist_table::get_filter_params
@@ -698,6 +768,24 @@ final class enrollist_table_test extends \advanced_testcase {
         $table->set_filterset($filterset);
 
         return $table;
+    }
+
+    /**
+     * Build the enrolment report table and pick the single formatted row which it shows.
+     *
+     * The row is formatted the very same way as enrolreport.php formats it, so that the returned cells really are the
+     * ones which an administrator sees in the report.
+     *
+     * @return array The formatted row, keyed by the column name.
+     */
+    private function get_report_row(): array {
+        $table = new enrollist_table('enrol_semco_enrolreport_test', '');
+        $table->setup();
+        $table->query_db(100, false);
+
+        $this->assertCount(1, $table->rawdata);
+
+        return $table->format_row(reset($table->rawdata));
     }
 
     /**

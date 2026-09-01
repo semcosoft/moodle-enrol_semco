@@ -493,9 +493,17 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
      * @return string The cell content.
      */
     public function col_course($row) {
+        // Format the course name the same way as the course filter formats the course names which it offers. Without
+        // this, a course name which carries a multilang span would show all of its language variants at once and any
+        // other markup within the name would be rendered as markup instead of being shown as it is.
+        $coursename = format_string($row->course, true, ['context' => \core\context\course::instance($row->courseid)]);
+
         // If the table is downloaded, return the plain course name as the downloaded files must not contain any markup.
+        // The formatting above still has to happen for a download, as this is what resolves a multilang course name into
+        // the language which the downloading user reads. Whatever markup is left over afterwards is removed by tablelib
+        // itself, which strips the tags and decodes the HTML entities of every cell before it writes the file.
         if ($this->is_downloading()) {
-            return $row->course;
+            return $coursename;
         }
 
         // The course column carries the text-nowrap class like all other columns to keep its header on a single line.
@@ -504,7 +512,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         // The overflow-wrap property makes sure that the maximum width also holds for course names which consist of a
         // single long word without any spaces to break at.
         $style = 'white-space: normal; min-width: 200px; max-width: 300px; overflow-wrap: break-word;';
-        return \html_writer::div($row->course, '', ['style' => $style]);
+        return \html_writer::div($coursename, '', ['style' => $style]);
     }
 
     /**
@@ -516,7 +524,16 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
      * @return mixed string or null.
      */
     public function other_cols($column, $row) {
-        global $OUTPUT;
+        // Inject the columns which show a SEMCO user profile field.
+        // The raw field value is formatted the same way as Moodle core formats the value of a text user profile field,
+        // i.e. it is put through format_string() with the context of the page which shows it. Without this, a field
+        // value which carries a multilang span would show all of its language variants at once and any other markup
+        // within the value would be rendered as markup instead of being shown as it is.
+        // A user who does not have a value in the field at all yields null here, which format_string() turns into an
+        // empty string, i.e. such a cell stays empty.
+        if (array_key_exists($column, enrol_semco_get_report_userfieldcolumns())) {
+            return format_string($row->$column, true, ['context' => $this->get_context()]);
+        }
 
         // Inject suspended column.
         // This column is labeled as "user status", but the column name is still "suspended" to allow sorting by this
