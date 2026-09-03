@@ -110,8 +110,8 @@ if ($ADMIN->fulltree) {
     $settings->add($setting);
 
     // Create optional report columns widget.
-    // All optional columns are enabled by default, i.e. the report shows all of its columns until the admin decides to
-    // drop some of them.
+    // Almost all optional columns are enabled by default, the two which show a particularly sensitive piece of personal
+    // data are not, see enrol_semco_get_report_optionalcolumns_default().
     $optionalcolumns = enrol_semco_get_report_optionalcolumns();
     $name = 'enrol_semco/reportoptionalcolumns';
     $title = get_string('settings_reportoptionalcolumns', 'enrol_semco', null, true);
@@ -120,7 +120,7 @@ if ($ADMIN->fulltree) {
         $name,
         $title,
         $description,
-        array_fill_keys(array_keys($optionalcolumns), 1),
+        array_fill_keys(enrol_semco_get_report_optionalcolumns_default(), 1),
         $optionalcolumns
     );
     $settings->add($setting);

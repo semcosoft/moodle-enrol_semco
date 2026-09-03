@@ -271,6 +271,10 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         // a join of its own. The fields are addressed by their shortname as their IDs differ from installation to
         // installation. The subqueries which look up these IDs do not reference the outer query, so the database can
         // evaluate each of them once instead of once per row.
+        // Four of the five fields are optional columns which the admin can switch off in the plugin settings. A field
+        // whose column the report does not show is not joined at all, as its join would only cost the database a
+        // roundtrip for a value which nothing ever reads. Only the SEMCO user ID is always joined, as its column is not
+        // optional and as its filter needs the field as well.
         // The expression which a field ends up in is remembered as well, as the filters below cannot address a field by
         // its column alias: SQL does not allow a column alias of the SELECT list to be used in a WHERE clause.
         $sqlparams = [];
@@ -278,7 +282,12 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         $userfieldexpressions = [];
         $userfieldjoins = '';
         $userfieldindex = 0;
+        $reportcolumns = self::get_report_columns();
         foreach (enrol_semco_get_report_userfieldcolumns() as $userfieldcolumn => $userfieldshortname) {
+            if (!array_key_exists($userfieldcolumn, $reportcolumns)) {
+                continue;
+            }
+
             $dataalias = 'uid' . $userfieldindex;
             $fieldalias = 'uif' . $userfieldindex;
             $shortnameparam = 'uifshortname' . $userfieldindex;
@@ -293,13 +302,14 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
             $sqlparams[$shortnameparam] = $userfieldshortname;
             $userfieldindex++;
         }
-        $userfieldssql = implode(', ', $userfieldselects);
+        // The trailing separator is part of the composed string, as the list of selected profile fields would be empty if
+        // the report did not show a single one of them and a separator of its own would break the SELECT list then.
+        $userfieldssql = empty($userfieldselects) ? '' : implode(', ', $userfieldselects) . ', ';
 
         // Set the sql for the table (putting enrolid as first parameter to make it unique).
-        $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, ' . $userfieldssql . ', u.username AS username,
+        $sqlfields = 'ue.id AS enrolid, u.id AS moodleuserid, ' . $userfieldssql . 'u.username AS username,
                 ' . $namefieldssql . ', u.email AS email, u.suspended AS suspended,
                 e.courseid AS courseid, c.fullname AS course, e.customchar1 AS semcobookingid,
-                c.showgrades AS courseshowgrades,
                 ue.timestart AS enrolstart, ue.timeend AS enrolend, ue.status AS enrolstatus,
                 ' . $completionstatussql . ' AS coursecompletionstatus, cc.timecompleted AS coursecompletiondate,
                 gg.finalgrade AS coursecompletiongrade';
@@ -507,12 +517,9 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         }
 
         // The course column carries the text-nowrap class like all other columns to keep its header on a single line.
-        // Course names can become arbitrarily long, though, so wrapping is re-enabled on an element around the cell
-        // content and this element is restricted to a maximum width.
-        // The overflow-wrap property makes sure that the maximum width also holds for course names which consist of a
-        // single long word without any spaces to break at.
-        $style = 'white-space: normal; min-width: 200px; max-width: 300px; overflow-wrap: break-word;';
-        return \html_writer::div($coursename, '', ['style' => $style]);
+        // Course names can become arbitrarily long, though, so the cell content is wrapped into an element which the
+        // stylesheet re-enables the wrapping on and which it restricts to a maximum width.
+        return \html_writer::div($coursename, 'enrol_semco-reportcoursename');
     }
 
     /**
@@ -682,7 +689,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         }
 
         // Add the item which leads to the user's grades within the enrolled course.
-        if ($this->can_view_coursegrades($course, $row->moodleuserid, $row->courseshowgrades)) {
+        if ($this->can_view_coursegrades($course, $row->moodleuserid)) {
             $menu->add(new \core\output\action_menu\link_secondary(
                 new \core\url(
                     '/course/user.php',
@@ -710,11 +717,10 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
      *
      * @param stdClass $course The course.
      * @param int $userid The ID of the user whose grades should be shown.
-     * @param int $showgrades Whether the course shows its gradebook to students.
      *
      * @return bool Whether the grades can be seen.
      */
-    private function can_view_coursegrades($course, int $userid, $showgrades): bool {
+    private function can_view_coursegrades($course, int $userid): bool {
         global $USER;
 
         $coursecontext = \core\context\course::instance($course->id);
@@ -726,7 +732,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         }
 
         // All remaining cases need the course to show its gradebook at all.
-        if (empty($showgrades)) {
+        if (empty($course->showgrades)) {
             return false;
         }
 
@@ -898,15 +904,16 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
     /**
      * Get the optional columns which the admin has enabled in the plugin settings.
      *
-     * The setting stores the enabled columns as a comma separated list. As long as it has not been stored at all, all
-     * optional columns are enabled, which is what the setting's default says.
+     * The setting stores the enabled columns as a comma separated list. As long as it has not been stored at all, the
+     * setting's default is used, which is not the full list of optional columns: The two columns which show a
+     * particularly sensitive piece of personal data are switched off out of the box.
      *
      * @return array The names of the enabled optional columns.
      */
     public static function get_enabled_optionalcolumns(): array {
         $optionalcolumnsconfig = get_config('enrol_semco', 'reportoptionalcolumns');
         if ($optionalcolumnsconfig === false) {
-            return array_keys(enrol_semco_get_report_optionalcolumns());
+            return enrol_semco_get_report_optionalcolumns_default();
         }
 
         return explode(',', $optionalcolumnsconfig);
