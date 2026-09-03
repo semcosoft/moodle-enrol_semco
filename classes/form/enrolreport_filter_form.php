@@ -66,8 +66,6 @@ class enrolreport_filter_form extends \moodleform {
         // They are grouped so that they end up on one row which the stylesheet turns into the footer of the filter menu,
         // exactly the way the filter form of the Moodle core report builder does it. The group's name is part of that
         // deal: The stylesheet addresses the footer by the data-groupname attribute which the name ends up in.
-        // Both labels are taken from Moodle core, so that the menu speaks the same language as the report builder filter
-        // menu which it is modelled after.
         $buttons = [];
         $buttons[] = $mform->createElement('submit', 'submitbutton', get_string('apply'));
         // The reset action is rendered as a link and not as a button. It needs the class override for that, as the form
@@ -75,7 +73,7 @@ class enrolreport_filter_form extends \moodleform {
         $buttons[] = $mform->createElement(
             'submit',
             'resetfilters',
-            get_string('resetall', 'core_reportbuilder'),
+            get_string('filtersreset', 'enrol_semco'),
             null,
             null,
             ['customclassoverride' => 'btn-link ms-1']

@@ -429,3 +429,23 @@ function enrol_semco_get_report_optionalcolumns() {
             'suspended' => get_string('tableuserstatus', 'enrol_semco'),
     ];
 }
+
+/**
+ * Helper function to get the enrolment report columns which the 'reportoptionalcolumns' admin setting enables by
+ * default.
+ *
+ * These are all optional columns except the ones which show a particularly sensitive piece of personal data, namely the
+ * user's birthday and the user's place of birth. The enrolment report is a site wide report which can be downloaded as
+ * a file as well, so these two columns would spread that data further than it has to be spread. An admin who really
+ * needs them in the report can still switch them on.
+ *
+ * This is the single place where that default is expressed. Both the admin setting and the report use it, so that the
+ * report shows exactly the columns which the setting says as long as the setting has not been stored at all.
+ *
+ * @return array The names of the report columns which are enabled by default.
+ */
+function enrol_semco_get_report_optionalcolumns_default() {
+    $sensitivecolumns = ['semcouserbirthday', 'semcouserplaceofbirth'];
+
+    return array_values(array_diff(array_keys(enrol_semco_get_report_optionalcolumns()), $sensitivecolumns));
+}
