@@ -119,3 +119,21 @@
 #page-enrol-semco-enrolreport .dataformatselector {
     margin-top: 2rem !important; /* stylelint-disable-line declaration-no-important */
 }
+
+
+/*
+ * Table of the enrolment report.
+ */
+
+/*
+ * The course name cell. Every column of the report is kept on a single line to keep its header from wrapping, but a
+ * course name can become arbitrarily long, so the wrapping is re-enabled within a restricted width here.
+ * The overflow-wrap property makes sure that the maximum width also holds for course names which consist of a single
+ * long word without any spaces to break at.
+ */
+.enrol_semco-reportcoursename {
+    min-width: 200px;
+    max-width: 300px;
+    overflow-wrap: break-word;
+    white-space: normal;
+}

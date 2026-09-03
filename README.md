@@ -108,6 +108,7 @@ Additionally, you can adapt the report table with these two settings:
 
 * With the 'Initial sorting column' setting, you control by which column the report is sorted when it is opened.
 * With the 'Optional report columns' setting, you control which of the optional columns are shown in the report. The columns which are offered in the 'Initial sorting column' setting are always shown and are therefore not offered here.
+  Please note that the 'SEMCO User birthday' and 'SEMCO User place of birth' columns are not enabled by default. These two columns show a particularly sensitive piece of personal data, and the enrolment report is a site wide report which can be downloaded as a file as well. Please enable them only if you really need them there.
 
 ### 3. Enrolment process
 

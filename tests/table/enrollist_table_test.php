@@ -569,6 +569,37 @@ final class enrollist_table_test extends \advanced_testcase {
     }
 
     /**
+     * Test that the two report columns which show a particularly sensitive piece of personal data are switched off out
+     * of the box.
+     *
+     * The enrolment report is a site wide report which can be downloaded as a file as well, so the user's birthday and
+     * the user's place of birth are not spread through it unless the admin really wants them there.
+     *
+     * @covers \enrol_semco\table\enrollist_table::get_enabled_optionalcolumns
+     */
+    public function test_the_sensitive_report_columns_are_disabled_by_default(): void {
+        // Drop the stored setting, so that the default is what decides. The setting is stored while the site is being
+        // installed, which is why looking at a test site without dropping it would not look at the default at all.
+        unset_config('reportoptionalcolumns', 'enrol_semco');
+
+        // The two sensitive columns are the only optional columns which are not enabled.
+        $sensitivecolumns = ['semcouserbirthday', 'semcouserplaceofbirth'];
+        $this->assertEqualsCanonicalizing(
+            array_diff(array_keys(enrol_semco_get_report_optionalcolumns()), $sensitivecolumns),
+            enrollist_table::get_enabled_optionalcolumns()
+        );
+
+        // And the report really leaves them out while it keeps the other user profile field columns.
+        $reportcolumns = enrollist_table::get_report_columns();
+        foreach ($sensitivecolumns as $sensitivecolumn) {
+            $this->assertArrayNotHasKey($sensitivecolumn, $reportcolumns);
+        }
+        $this->assertArrayHasKey('semcouserid', $reportcolumns);
+        $this->assertArrayHasKey('semcousercompany', $reportcolumns);
+        $this->assertArrayHasKey('semcotenantshortname', $reportcolumns);
+    }
+
+    /**
      * Test that a filter is not offered anymore as soon as the admin has switched off the column which it filters.
      *
      * @covers \enrol_semco\table\enrollist_table::get_available_filter_names
@@ -671,6 +702,11 @@ final class enrollist_table_test extends \advanced_testcase {
     public function test_the_course_name_and_the_user_profile_fields_are_formatted(): void {
         global $CFG, $DB;
 
+        // Enable all optional report columns, including the two which are switched off by default, as the test checks
+        // every SEMCO user profile field column.
+        set_config('reportoptionalcolumns', implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
+                'enrol_semco');
+
         // Switch the multilang filter on site wide and let it filter strings as well, which is what the report's values
         // are formatted as.
         $CFG->filterall = true;
@@ -734,6 +770,11 @@ final class enrollist_table_test extends \advanced_testcase {
      * @covers \enrol_semco\table\enrollist_table::other_cols
      */
     public function test_an_empty_user_profile_field_shows_the_placeholder(): void {
+        // Enable all optional report columns, including the two which are switched off by default, as the test checks
+        // every SEMCO user profile field column.
+        set_config('reportoptionalcolumns', implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
+                'enrol_semco');
+
         $course = $this->getDataGenerator()->create_course();
 
         // BOOK-0001: A user who does not have a value in any of the SEMCO user profile fields. The enrolment is

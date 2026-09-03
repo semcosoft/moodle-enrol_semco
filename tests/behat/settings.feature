@@ -46,11 +46,15 @@ Feature: SEMCO plugin settings page
     And I should see an "Initial sorting column" "select" in the "Enrolment report" settings section
     And the "Initial sorting column" select box should contain "Last name"
     And the "Initial sorting column" select box should contain "SEMCO booking ID"
-    # The optional report columns are picked with a checkbox per column, and all of them are enabled out of the box.
+    # The optional report columns are picked with a checkbox per column.
     And I should see a "Moodle User status" "checkbox" in the "Enrolment report" settings section
     And I should see a "Course completion grade" "checkbox" in the "Enrolment report" settings section
     And the field "Moodle User status" matches value "1"
     And the field "Course completion grade" matches value "1"
+    And I should see a "SEMCO User birthday" "checkbox" in the "Enrolment report" settings section
+    And I should see a "SEMCO User place of birth" "checkbox" in the "Enrolment report" settings section
+    And the field "SEMCO User birthday" matches value "0"
+    And the field "SEMCO User place of birth" matches value "0"
 
   # "Enrolment process" section
 
