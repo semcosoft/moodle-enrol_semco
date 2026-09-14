@@ -39,8 +39,9 @@ use core\exception\required_capability_exception;
  * from the SEMCO webservice role (which must be rejected). The capability is revoked with the plugin's data generator so
  * that the role itself stays untouched otherwise.
  *
- * The 'enrol/semco:viewreport' capability is not covered here as it does not guard a webservice function. It is covered
- * by the Behat feature tests/behat/report.feature instead.
+ * The 'enrol/semco:viewreport' and 'enrol/semco:viewhealthcheck' capabilities are not covered here as they do not guard a
+ * webservice function. They are covered by the Behat features tests/behat/report.feature and
+ * tests/behat/healthcheck.feature instead.
  *
  * @covers \enrol_semco\external
  *
@@ -93,8 +94,9 @@ final class capabilities_test extends \advanced_testcase {
      * Data provider for test_webservice_function_requires_its_capability.
      *
      * It lists all capabilities which guard one of the plugin's webservice functions, i.e. all capabilities from
-     * db/access.php except 'enrol/semco:usewebservice' (which guards the webservice as a whole and is tested separately)
-     * and 'enrol/semco:viewreport' (which guards the enrolment report and is tested with Behat).
+     * db/access.php except 'enrol/semco:usewebservice' (which guards the webservice as a whole and is tested separately),
+     * 'enrol/semco:viewreport' (which guards the enrolment report and is tested with Behat) and
+     * 'enrol/semco:viewhealthcheck' (which guards the health check and is tested with Behat as well).
      *
      * @return array
      */

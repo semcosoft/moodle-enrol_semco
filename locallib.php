@@ -232,10 +232,38 @@ function enrol_semco_roleassign_updatecallback() {
  * kinds of installations, regardless of the fact if local_recompletion is really present in the test installation or not.
  * Please note that these switches only control what this function reports, they neither add nor remove the companion plugin.
  *
+ * A simulated absence of the companion plugin is always taken into account, as it can only make a caller do less than
+ * it would do otherwise. A simulated presence is a different story: A caller which is going to use the code or the
+ * database tables of the companion plugin would run into a fatal error if the plugin is not really there. Such a
+ * simulation is therefore only taken into account if the caller passes true as $allowtestoverrides, which only the
+ * callers should do which do nothing but report the state of the companion plugin.
+ *
+ * @param bool $allowtestoverrides Whether a simulated presence of the companion plugin is taken into account.
  * @return boolean
  */
-function enrol_semco_check_local_recompletion() {
+function enrol_semco_check_local_recompletion($allowtestoverrides = false) {
     global $CFG;
+
+    // If automated tests are running.
+    if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST) || (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)) {
+        // If we simulate the plugin to be not installed, every caller gets this result. Believing that the plugin is
+        // absent while it is there can only make a caller do less, it can never make it touch something which is not
+        // there.
+        if (isset($CFG->localrecompletionnotinstalled) && $CFG->localrecompletionnotinstalled == true) {
+            // Return this.
+            return false;
+        }
+
+        // If we simulate the plugin to be installed, only a caller which accepts a simulated presence gets this
+        // result. The others would run into a fatal error if the plugin is not really there.
+        if (
+            $allowtestoverrides == true
+                && isset($CFG->localrecompletionforceinstalled) && $CFG->localrecompletionforceinstalled == true
+        ) {
+            // Return this.
+            return true;
+        }
+    }
 
     // If PHPUnit tests are running.
     if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
@@ -248,21 +276,6 @@ function enrol_semco_check_local_recompletion() {
 
     // If the check has not been done yet.
     if (!isset($localrecompletioninstalled)) {
-        // If automated tests are running.
-        if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST) || (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)) {
-            // If we simulate the plugin to be not installed.
-            if (isset($CFG->localrecompletionnotinstalled) && $CFG->localrecompletionnotinstalled == true) {
-                // Return this.
-                return false;
-            }
-
-            // If we simulate the plugin to be installed.
-            if (isset($CFG->localrecompletionforceinstalled) && $CFG->localrecompletionforceinstalled == true) {
-                // Return this.
-                return true;
-            }
-        }
-
         // Check if local_recompletion is installed.
         if (file_exists($CFG->dirroot . '/local/recompletion/version.php')) {
             // Get the plugin version.
@@ -296,8 +309,8 @@ function enrol_semco_check_local_recompletion() {
  * -> class enrol_semco\local\hook\output\before_standard_top_of_body_html_generation (for releases from Moodle 4.4 on).
  *
  * We use this callback as the enrol plugin type, unfortunately, does not include settings.php for non-admins.
- * So we have to use a nasty workaround to add the SEMCO enrolment report link to the site administration
- * where managers will find it.
+ * So we have to use a nasty workaround to add the SEMCO enrolment report and the SEMCO health check link to the site
+ * administration where managers will find them.
  * This is done here by hooking into the page navigation manually before the page output is started.
  *
  * @param \core\hook\output\before_standard_top_of_body_html_generation $hook The hook (which is unused in this plugin).
@@ -311,28 +324,49 @@ function enrol_semco_callbackimpl_before_standard_top_of_body_html(&$hook = null
         return;
     }
 
-    // Allow admins and users with the enrol/semco:viewreport capability to access the report.
+    // Get the system context.
     $context = context_system::instance();
-    if (
-        has_capability('moodle/site:config', $context) ||
-            has_capability('enrol/semco:viewreport', $context)
-    ) {
-        // Create new navigation node for enrolment report.
-        $reportnode = navigation_node::create(
+
+    // Compose the list of nodes which we want to add to the site administration, based on the user's capabilities.
+    // Admins are allowed to access both pages in any case.
+    $isadmin = has_capability('moodle/site:config', $context);
+    $nodes = [];
+
+    // Allow admins and users with the enrol/semco:viewreport capability to access the enrolment report.
+    if ($isadmin || has_capability('enrol/semco:viewreport', $context)) {
+        $nodes[] = navigation_node::create(
             get_string('reportpagetitle', 'enrol_semco', null, true),
             new \core\url('/enrol/semco/enrolreport.php'),
             navigation_node::TYPE_SETTING,
             null,
             'enrol_semco_enrolreport'
         );
+    }
 
-        // Find the reports container in navigation.
-        $reports = $PAGE->settingsnav->find('reports', navigation_node::TYPE_SETTING);
+    // Allow admins and users with the enrol/semco:viewhealthcheck capability to access the health check.
+    if ($isadmin || has_capability('enrol/semco:viewhealthcheck', $context)) {
+        $nodes[] = navigation_node::create(
+            get_string('healthcheckpagetitle', 'enrol_semco', null, true),
+            new \core\url('/enrol/semco/healthcheck.php'),
+            navigation_node::TYPE_SETTING,
+            null,
+            'enrol_semco_healthcheck'
+        );
+    }
 
-        // If the reports container was found.
-        if ($reports != false) {
-            // Add our report node to the list of reports.
-            $reports->add_node($reportnode);
+    // If there isn't any node to add, we can return immediately.
+    if (count($nodes) < 1) {
+        return;
+    }
+
+    // Find the reports container in navigation.
+    $reports = $PAGE->settingsnav->find('reports', navigation_node::TYPE_SETTING);
+
+    // If the reports container was found.
+    if ($reports != false) {
+        // Add our nodes to the list of reports.
+        foreach ($nodes as $node) {
+            $reports->add_node($node);
         }
     }
 }

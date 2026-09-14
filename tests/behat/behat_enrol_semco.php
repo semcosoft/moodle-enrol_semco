@@ -60,6 +60,7 @@ class behat_enrol_semco extends behat_base {
      *
      * Recognised page names are:
      * | None generic  |                                 |
+     * | Healthcheck   | The SEMCO health check page     |
      * | Report        | The SEMCO enrolment report page |
      * | Settings      | The SEMCO plugin settings page  |
      *
@@ -69,6 +70,8 @@ class behat_enrol_semco extends behat_base {
      */
     protected function resolve_page_url(string $page): moodle_url {
         switch (strtolower($page)) {
+            case 'healthcheck':
+                return new moodle_url('/enrol/semco/healthcheck.php');
             case 'report':
                 return new moodle_url('/enrol/semco/enrolreport.php');
             case 'settings':
@@ -81,35 +84,56 @@ class behat_enrol_semco extends behat_base {
     /**
      * Check that the SEMCO enrolment report refuses the access of the currently logged in user.
      *
-     * The report page is guarded with require_capability(), so a user without the 'enrol/semco:viewreport' capability does
-     * not only miss the links which lead to the report, the page itself refuses to show anything and Moodle renders its
-     * fatal error page instead.
-     *
-     * This cannot be covered with the standard navigation and assertion steps: Behat inspects the page after every single
-     * step and fails the scenario as soon as it finds Moodle's fatal error box, no matter if the error was expected or not.
-     * This step therefore drives the browser session directly, remembers what the report page has shown and leaves the
-     * error page again before it evaluates the outcome.
-     *
      * @Then the SEMCO enrolment report should refuse the access
      * @throws \Behat\Mink\Exception\ExpectationException
      */
     public function the_semco_enrolment_report_should_refuse_the_access(): void {
+        $this->assert_page_refuses_the_access('report', 'enrol/semco:viewreport', 'The SEMCO enrolment report');
+    }
+
+    /**
+     * Check that the SEMCO health check refuses the access of the currently logged in user.
+     *
+     * @Then the SEMCO health check should refuse the access
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_semco_health_check_should_refuse_the_access(): void {
+        $this->assert_page_refuses_the_access('healthcheck', 'enrol/semco:viewhealthcheck', 'The SEMCO health check');
+    }
+
+    /**
+     * Check that one of the plugin's pages refuses the access of the currently logged in user.
+     *
+     * These pages are guarded with require_capability(), so a user without the respective capability does not only miss the
+     * links which lead to the page, the page itself refuses to show anything and Moodle renders its fatal error page instead.
+     *
+     * This cannot be covered with the standard navigation and assertion steps: Behat inspects the page after every single
+     * step and fails the scenario as soon as it finds Moodle's fatal error box, no matter if the error was expected or not.
+     * This helper therefore drives the browser session directly, remembers what the page has shown and leaves the error page
+     * again before it evaluates the outcome.
+     *
+     * @param string $page The page name as understood by resolve_page_url().
+     * @param string $capability The capability which is supposed to guard the page.
+     * @param string $pagelabel The human readable page name for the failure message.
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    protected function assert_page_refuses_the_access(string $page, string $capability, string $pagelabel): void {
         $session = $this->getSession();
 
-        // Visit the report page and remember what it has shown.
-        $session->visit($this->locate_path($this->resolve_page_url('report')->out_as_local_url(false)));
-        $reportpagetext = $session->getPage()->getText();
+        // Visit the page and remember what it has shown.
+        $session->visit($this->locate_path($this->resolve_page_url($page)->out_as_local_url(false)));
+        $pagetext = $session->getPage()->getText();
 
         // Leave the error page again before Behat's own exception check gets to see it.
         $session->visit($this->locate_path('/'));
 
-        // The report must have refused the access with the 'no permissions' error which names the report capability.
+        // The page must have refused the access with the 'no permissions' error which names the page's capability.
         // The capability is part of the assertion on purpose: Without it, the step would also pass if the page failed
         // for any other reason.
-        $expectederror = get_string('nopermissions', 'error', get_capability_string('enrol/semco:viewreport'));
-        if (strpos($reportpagetext, $expectederror) === false) {
+        $expectederror = get_string('nopermissions', 'error', get_capability_string($capability));
+        if (strpos($pagetext, $expectederror) === false) {
             throw new \Behat\Mink\Exception\ExpectationException(
-                'The SEMCO enrolment report did not refuse the access with the message "' . $expectederror . '".',
+                $pagelabel . ' did not refuse the access with the message "' . $expectederror . '".',
                 $session
             );
         }
@@ -130,6 +154,26 @@ class behat_enrol_semco extends behat_base {
      */
     public function the_semco_plugin_configuration_cache_is_purged(): void {
         \core_cache\helper::purge_by_definition('core', 'config');
+    }
+
+    /**
+     * Mute all SEMCO health check items which need attention at the moment.
+     *
+     * The health check also covers the companion plugin local_recompletion and the recommended global Moodle settings, and
+     * a stock Moodle instance does not follow all of these recommendations. A scenario which needs a health check which is
+     * quiet as a whole uses this step to silence these items, just as an admin would do who has decided against them.
+     *
+     * @Given all SEMCO health checks which need attention are muted
+     */
+    public function all_semco_health_checks_which_need_attention_are_muted(): void {
+        // Make sure that the items are evaluated against the current state of the site.
+        \core_cache\helper::purge_by_definition('core', 'config');
+        \enrol_semco\healthcheck\healthcheck::reset_caches();
+
+        // Mute the items.
+        foreach (\enrol_semco\healthcheck\manager::get_healthchecks_needing_attention() as $healthcheck) {
+            \enrol_semco\healthcheck\manager::set_healthcheck_muted($healthcheck->get_id(), true);
+        }
     }
 
     /**
@@ -437,6 +481,27 @@ class behat_enrol_semco extends behat_base {
                 $this->getSession()
             );
         }
+    }
+
+    /**
+     * Delete the SEMCO webservice token from the database.
+     *
+     * This brings the plugin installation into the state which the health check reports as a missing token.
+     *
+     * @Given the SEMCO webservice token is deleted
+     */
+    public function the_semco_webservice_token_is_deleted(): void {
+        global $CFG, $DB;
+
+        // Require plugin library to get the plugin's constants.
+        require_once($CFG->dirroot . '/enrol/semco/locallib.php');
+
+        // Get the SEMCO webservice user and the SEMCO external service.
+        $userid = $DB->get_field('user', 'id', ['username' => ENROL_SEMCO_ROLEANDUSERNAME, 'deleted' => 0], MUST_EXIST);
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => ENROL_SEMCO_SERVICENAME], MUST_EXIST);
+
+        // Delete all tokens of the user for the service.
+        $DB->delete_records('external_tokens', ['userid' => $userid, 'externalserviceid' => $serviceid]);
     }
 
     /**

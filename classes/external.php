@@ -251,7 +251,9 @@ class external extends external_api {
 
         // If the caller expects that local_recompletion is enabled.
         if (!empty($params['requirerecompletion']) && $params['requirerecompletion'] == true) {
-            // Throw an exception if local_recompletion is not installed (or too old).
+            // Throw an exception if local_recompletion is not installed (or too old). A simulated presence of the
+            // companion plugin in an automated test is not accepted here, as we are going to use the code and the
+            // database tables of the companion plugin right afterwards. A simulated absence is honoured nonetheless.
             if (enrol_semco_check_local_recompletion() != true) {
                 throw new moodle_exception('localrecompletionnotexpectable', 'enrol_semco');
             }
@@ -1142,7 +1144,9 @@ class external extends external_api {
         // Check that the webservice user has the permission to reset course completions for SEMCO users.
         require_capability('enrol/semco:resetcoursecompletion', $context);
 
-        // Throw an exception if local_recompletion is not installed (or too old).
+        // Throw an exception if local_recompletion is not installed (or too old). A simulated presence of the companion
+        // plugin in an automated test is not accepted here, as we are going to use the code and the database tables of
+        // the companion plugin right afterwards. A simulated absence is honoured nonetheless.
         if (enrol_semco_check_local_recompletion() != true) {
             throw new moodle_exception('localrecompletionnotinstalled', 'enrol_semco');
         }
