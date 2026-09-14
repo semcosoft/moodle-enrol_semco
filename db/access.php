@@ -126,4 +126,15 @@ $capabilities = [
                 'manager' => CAP_ALLOW,
             ],
         ],
+        // Ability to view the SEMCO health check.
+        // By default, this is not allowed for any role.
+        //
+        // Although the capability is named after viewing the health check, it also allows to apply the automatic fixes of
+        // the health check which change the site configuration. It is therefore declared as a write capability with the
+        // config risk, so that the risk is shown honestly in the role definition.
+        'enrol/semco:viewhealthcheck' => [
+            'captype' => 'write',
+            'riskbitmask' => RISK_CONFIG,
+            'contextlevel' => CONTEXT_SYSTEM,
+        ],
 ];

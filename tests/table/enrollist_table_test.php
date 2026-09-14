@@ -704,8 +704,11 @@ final class enrollist_table_test extends \advanced_testcase {
 
         // Enable all optional report columns, including the two which are switched off by default, as the test checks
         // every SEMCO user profile field column.
-        set_config('reportoptionalcolumns', implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
-                'enrol_semco');
+        set_config(
+            'reportoptionalcolumns',
+            implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
+            'enrol_semco'
+        );
 
         // Switch the multilang filter on site wide and let it filter strings as well, which is what the report's values
         // are formatted as.
@@ -772,8 +775,11 @@ final class enrollist_table_test extends \advanced_testcase {
     public function test_an_empty_user_profile_field_shows_the_placeholder(): void {
         // Enable all optional report columns, including the two which are switched off by default, as the test checks
         // every SEMCO user profile field column.
-        set_config('reportoptionalcolumns', implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
-                'enrol_semco');
+        set_config(
+            'reportoptionalcolumns',
+            implode(',', array_keys(enrol_semco_get_report_optionalcolumns())),
+            'enrol_semco'
+        );
 
         $course = $this->getDataGenerator()->create_course();
 

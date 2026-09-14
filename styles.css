@@ -137,3 +137,42 @@
     overflow-wrap: break-word;
     white-space: normal;
 }
+
+
+/*
+ * Table of the health check.
+ */
+
+/*
+ * The health check shows one table per category and these tables are rendered one below the other. With the browser's
+ * automatic table layout, each of them would end up with its own column widths which makes the page look
+ * inhomogeneous. We therefore switch the tables to a fixed table layout and size the columns explicitly.
+ * The column classes c0 to c3 are composed by flexible_table and are present on the header cells as well as on the
+ * body cells of the tables.
+ */
+#page-enrol-semco-healthcheck table.flexible[id^="healthchecks-"] {
+    table-layout: fixed;
+}
+
+#page-enrol-semco-healthcheck table.flexible[id^="healthchecks-"] .c0 {
+    width: 10%;
+}
+
+#page-enrol-semco-healthcheck table.flexible[id^="healthchecks-"] .c1 {
+    width: 28%;
+}
+
+/*
+ * The summary column does not get a width on purpose: With a fixed table layout, it takes whatever the other columns
+ * leave over.
+ */
+
+/*
+ * The actions column carries the text-nowrap class, just like the recommendations table in Boost Union does. But unlike
+ * there, this does not widen the column here, as a fixed table layout ignores the content of the cells, and the icons
+ * would overflow the cell instead as soon as the viewport gets narrow. We therefore size this column by its content and
+ * not by the viewport: It holds up to four action icons which need 1.75rem each, plus the padding of the cell of 1rem.
+ */
+#page-enrol-semco-healthcheck table.flexible[id^="healthchecks-"] .c3 {
+    width: 8rem;
+}
