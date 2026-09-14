@@ -221,5 +221,21 @@ function enrol_semco_get_fontawesome_icon_map() {
         'enrol_semco:viewuserprofile' => 'fa-solid fa-user',
         'enrol_semco:viewcourseprofile' => 'fa-solid fa-user-graduate',
         'enrol_semco:viewcoursegrades' => 'fa-solid fa-user-graduate',
+        'enrol_semco:info' => 'fa-solid fa-circle-info',
+        'enrol_semco:autofix' => 'fa-solid fa-wand-magic-sparkles',
+        'enrol_semco:support' => 'fa-solid fa-phone',
+        'enrol_semco:muted' => 'fa-solid fa-bell-slash',
+        'enrol_semco:unmuted' => 'fa-solid fa-bell',
+    ];
+}
+
+/**
+ * Add the SEMCO health check to the Moodle Checks API.
+ *
+ * @return \core\check\check[]
+ */
+function enrol_semco_status_checks(): array {
+    return [
+        new \enrol_semco\check\healthcheck(),
     ];
 }

@@ -1,0 +1,68 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template enrol_semco/healthcheckautofixconfirm
+
+    SEMCO health check automatic fix confirmation template.
+
+    This template is rendered on the server and handed over to the Moodle core confirmation modal as its body.
+
+    Context variables required for this template:
+    * title - The title of the health check item which is going to be fixed
+    * findings - The list of findings which are going to be fixed, each with a 'finding' key
+    * hasmultiplefindings - Whether there is more than one finding
+    * singlefinding - The one and only finding, if there is exactly one
+    * note - The note which explains that the automatic fix does not repair the plugin installation, if this is the case
+    * isrisky - Whether the automatic fix is not entirely harmless
+
+    Example context (json):
+    {
+        "title": "Moodle messaging system",
+        "findings": [ { "finding": "The Moodle messaging system is enabled." } ],
+        "hasmultiplefindings": false,
+        "singlefinding": "The Moodle messaging system is enabled.",
+        "note": "Please note: This finding is not a fault of the SEMCO plugin or of its installation.",
+        "isrisky": true
+    }
+}}
+<div class="enrol_semco-healthcheckautofix-modal">
+    <p><strong>{{#str}}healthcheckautofixconfirmcheck, enrol_semco{{/str}}</strong><br />
+    {{title}}</p>
+    {{! The findings are HTML as they may contain lists, thus they are output unescaped. A list must not be wrapped in
+        a paragraph, thus the single finding gets a div. }}
+    {{#singlefinding}}
+        <p class="mb-0"><strong>{{#str}}healthcheckautofixconfirmfinding, enrol_semco{{/str}}</strong></p>
+        <div class="mb-3">{{{singlefinding}}}</div>
+    {{/singlefinding}}
+    {{#hasmultiplefindings}}
+        <p class="mb-0"><strong>{{#str}}healthcheckautofixconfirmfindings, enrol_semco{{/str}}</strong></p>
+        <ul class="enrol_semco-healthcheckautofix-findings">
+            {{#findings}}
+                <li>{{{finding}}}</li>
+            {{/findings}}
+        </ul>
+    {{/hasmultiplefindings}}
+    {{#note}}
+        <p class="enrol_semco-healthcheckautofix-note">{{note}}</p>
+    {{/note}}
+    {{#isrisky}}
+        <div class="alert alert-danger enrol_semco-healthcheckautofix-risky" role="alert">
+            {{#str}}healthcheckautofixconfirmrisky, enrol_semco{{/str}}
+        </div>
+    {{/isrisky}}
+    <p class="mb-0">{{#str}}healthcheckautofixconfirmquestion, enrol_semco{{/str}}</p>
+</div>
