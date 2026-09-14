@@ -93,13 +93,18 @@ After installing the plugin and after the automatic configuration, it is ready t
 To configure the plugin and its behaviour, please visit:
 Site administration -> Plugins -> Enrolments -> SEMCO
 
-There, you find four sections:
+There, you find five sections:
 
 ### 1. Connection information
 
 In this section, you will find the Moodle base URL and the webservice token which was automatically created during the plugin installation. Please use this data to configure the Moodle connection in SEMCO.
 
-### 2. Enrolment report
+### 2. Health check
+
+In this section, you will find the link to a site report where you can check if the Moodle setup which this plugin needs is still intact. If at least one aspect of this setup needs your attention, this section will tell you as well.
+Please see the 'Health check' chapter below for more details.
+
+### 3. Enrolment report
 
 In this section, you will find the link to a site report where you can see all enrolments which have been made by SEMCO.
 For managers, this report is also linked in the 'Reports' section within the site administration.
@@ -110,11 +115,11 @@ Additionally, you can adapt the report table with these two settings:
 * With the 'Optional report columns' setting, you control which of the optional columns are shown in the report. The columns which are offered in the 'Initial sorting column' setting are always shown and are therefore not offered here.
   Please note that the 'SEMCO User birthday' and 'SEMCO User place of birth' columns are not enabled by default. These two columns show a particularly sensitive piece of personal data, and the enrolment report is a site wide report which can be downloaded as a file as well. Please enable them only if you really need them there.
 
-### 3. Enrolment process
+### 4. Enrolment process
 
 In this section, you control with which role SEMCO enrols users into courses. The configured role is mandatory for all users who are enrolled from SEMCO and cannot be overridden with the SEMCO enrolment webservice endpoint.
 
-### 4. Course completion
+### 5. Course completion
 
 In this section, you can verify that the local_recompletion plugin is installed and SEMCO would be able to reset the completion of a user if he is enrolled into a particular course once more.
 
@@ -132,7 +137,7 @@ Capabilities
 
 This plugin also introduces these additional capabilities.
 
-All of them except the last one, enrol/semco:viewreport, are webservice capabilities which are only there to let SEMCO do its job. Please see the important note below the list before you grant any of them to a role.
+All of them except the last two, enrol/semco:viewreport and enrol/semco:viewhealthcheck, are webservice capabilities which are only there to let SEMCO do its job. Please see the important note below the list before you grant any of them to a role.
 
 ### enrol/semco:usewebservice
 
@@ -172,9 +177,15 @@ This capability controls the ability to view the enrolment report of all SEMCO u
 
 In contrast to the webservice capabilities above, this capability is allowed for the manager role by default.
 
+### enrol/semco:viewhealthcheck
+
+This capability controls the ability to view the SEMCO health check.
+
+In contrast to enrol/semco:viewreport, this capability is not allowed for any role archetype by default, not even for the manager role. This is a deliberate decision: The health check does not only show the state of the plugin installation, it also allows to fix several aspects of it automatically and these automatic fixes change the site configuration. Please grant this capability only to roles which you would also trust with these configuration changes.
+
 ### Important note about the webservice capabilities
 
-This note applies to every capability in the list above except enrol/semco:viewreport.
+This note applies to every capability in the list above except enrol/semco:viewreport and enrol/semco:viewhealthcheck.
 
 By default, these capabilities are not allowed to any role archetype as they should just be used by a webservice.
 They will be automatically assigned to the 'SEMCO webservice' role during the plugin installation.
@@ -248,19 +259,60 @@ Your SEMCO-Moodle integration does not necessarily need to fully match these usa
 * A course which is sold via SEMCO - or ideally all courses in the Moodle instance - should not have self-enrolment enabled. Alternatively, you should configure the 'Authenticated user' role in Moodle in a way that users cannot enrol into courses themselves. This is because you will not want that users who got enrolled into course A by SEMCO are able to enrol into course B themselves (without paying for the course via SEMCO). And you might not want that users who came from SEMCO snoop around in other Moodle courses which are not connected to SEMCO.
 * The role with which SEMCO enrols users into courses (and which can be set in the plugin configuration) should not have the moodle/course:viewparticipants capabilities set. This is because you should assume that these course participants are not all members of the same class / cohort and do not know each other. If they would see each other participants in the course, you might even have a data protection leak.
 * For the same reason, you should also disable the Moodle messaging system to avoid that users get in touch with each other on the Moodle instance.
-* The system message 'Course completed' should be disabled (on /admin/message.php) as a default. This is because, from SEMCO 7.9 on, SEMCO is able to send out information mails itself as soon as a course has been completed.
+* The system message 'Course completed' should be disabled for the whole site with the 'Enabled' toggle on /admin/message.php. This is because, from SEMCO 7.9 on, SEMCO is able to send out information mails itself as soon as a course has been completed. Disabling the notification for the whole site is more than just changing its default: Moodle does not send it at all then and your users cannot enable it in their notification preferences either.
+
+You do not have to walk through these settings on your own: The plugin's health check (see the 'Health check' chapter below) verifies each of them in its 'Recommended Moodle settings' category and, where this is possible, offers to apply the recommendation for you with a single click. Some findings still have to be fixed manually, for example the self-enrolment of particular courses, as these enrolment instances are in the hands of the teachers.
 
 
-Useful settings for local_recompletion
---------------------------------------
+Recommended settings for local_recompletion
+-------------------------------------------
 
 If you decide to use the companion plugin local_recompletion to allow SEMCO to reset course completions during subsequent user enrolments, please verify these settings of local_recompletion before the go-live of your integration:
 
-* SEMCO can only reset a user's course completion if the "Recompletion type" setting in the particular course is set to "On demand". It's up to the individual teachers to go to the course recompletion settings in their courses and save the settings before SEMCO can reset a user's course completion in a course.
+* SEMCO can only reset a user's course completion if the "Recompletion type" setting in the particular course is set to "On demand". To avoid that each and every teacher has to go to the course recompletion settings in his course and save the settings before SEMCO can reset a user's course completion, you should set the site-wide default of the "Recompletion type" setting to "On demand" on /admin/settings.php?section=local_recompletion.
 * By design, SEMCO will reset a user's course completion even on the user's first SEMCO enrolment into the course. This might seem unnecessary, but as it is not impossible that the user might have been manually enrolled before into that course (and might have completed it then), SEMCO resets the course completion just to be sure that the course is clean before each and every SEMCO enrolment. Against this background, the standard behaviour of local_recompletion to send out a notification message to the user when the course is reset will confuse the user. To avoid such confusion, you should disable the "Send recompletion message" setting on /admin/settings.php?section=local_recompletion.
 * By default, local_recompletion is configured in a way that it does not reset any activity in a course unless the teacher activates the activity type's reset in his particular course. To ease the teacher's life and to avoid that SEMCO triggers a course completion reset but nothing is deleted from the course in the end, you should enable all items in the "Plugins settings" section on /admin/settings.php?section=local_recompletion which are relevant for the courses in your Moodle instance.
 * By default, local_recompletion grants the local/recompletion:resetmycompletion capability to the participant role. That way, course participants could reset a course's completion on their own. Within a SEMCO-Moodle setup, this should be avoided. Please retract the local/recompletion:resetmycompletion capability from at least the participants role after installing the plugin.
 
+Again, you do not have to walk through these settings on your own: The plugin's health check (see the 'Health check' chapter below) verifies each of them in its 'Recompletion plugin' category and, where this is possible, offers to apply the recommendation for you with a single click. Some findings still have to be fixed manually, for example the reset of the particular activity types, as picking the reset strategy of an activity type is a didactical decision which the health check cannot make for you.
+
+
+Health check
+------------
+
+As described in the 'Installation' chapter above, this plugin sets up a whole bunch of Moodle assets during its installation. All of these assets are needed for the plugin to work properly, but Moodle does not protect them from being changed or removed afterwards. An administrator might disable the webservice subsystem, might suspend the SEMCO webservice user or might revoke a capability from the SEMCO webservice role - and the SEMCO connection would silently stop working.
+
+The health check verifies every single aspect of this setup and reports if it is still in the desired state. It is available as a site report on /enrol/semco/healthcheck.php and it is linked in the 'Reports' section within the site administration as well as in the plugin settings.
+
+The health check items are grouped into eight categories. The first six categories - the webservice infrastructure, the SEMCO enrolment plugin, the SEMCO webservice role, the SEMCO webservice user, the SEMCO webservice token and the SEMCO user profile fields - cover the state of the plugin installation.
+
+The seventh category, 'Recompletion plugin', covers the companion plugin local_recompletion which SEMCO needs to reset course completions. It checks whether the plugin is installed at all and, if it is, whether it is configured as described in the 'Recommended settings for local_recompletion' chapter above. If the plugin is not installed, the other items of this category cannot be assessed.
+
+The eighth category, 'Recommended Moodle settings', goes one step further: It checks the global Moodle settings which are described in the 'Important global Moodle settings' chapter above. These settings are not touched by the plugin installer and your integration does not necessarily need to follow them. They are recommendations and not requirements, thus these items are meant to make you think about them rather than to make you change them right away.
+
+Each item reports one of these six statuses:
+
+* OK: The checked aspect is in the desired state. No action is required.
+* Notice: The checked aspect either deviates from the state which the plugin installer has created or it does not follow a recommendation. The SEMCO integration works as expected. There is one exception: If the plugin was installed together with a fresh Moodle installation, the REST capability of the SEMCO webservice role is assigned by an ad-hoc task with the first cron run. While this task is waiting, the item reports a notice even though SEMCO cannot connect yet. If the task has not been processed within 3 minutes, the item reports an error instead.
+* Warning: The checked aspect needs your attention. The SEMCO integration still works, but the aspect is either not in the desired state or it has a consequence which you should not accept unknowingly.
+* Error: The checked aspect is broken and the SEMCO integration does not work at the moment. These items need your immediate attention, for example when the Moodle webservice subsystem is switched off, when the SEMCO webservice user is suspended or when its webservice token is gone.
+* N/A: The checked aspect could not be assessed as one of its prerequisites is missing.
+* Muted: You have muted the item. Regardless of its real status, it does not bother you anymore until you unmute it again (see below).
+
+The distinction between Error and Warning is what makes the health check actionable: An error means that SEMCO cannot talk to Moodle or cannot do its job right now, so every minute counts. A warning means that you should have a look at the aspect, but your integration keeps running in the meantime. The items of the 'Recompletion plugin' and 'Recommended Moodle settings' categories never report an error as they do not cover the SEMCO integration itself.
+
+For each item, you can open a details view which explains the background of the item and, if the item found a problem, names the concrete finding.
+
+The 'Actions' column offers up to four icons per item:
+
+* The info icon opens the details view which is described above.
+* The wand icon fixes the item automatically. Before anything is changed, a confirmation dialogue names the findings which are going to be fixed. An item can only be fixed automatically if each and every one of its findings can be fixed. This is offered wherever the desired state is known and can be restored safely. Even an asset which is gone completely is created again, just as the plugin installer has created it. If such a fix cannot do the whole job, for example because a new webservice token still has to be entered in SEMCO, the success message tells you what is left to do.\
+  Some automatic fixes are not entirely harmless, because they remove something which somebody may have added on purpose or because they change something which affects more than the SEMCO integration. In these cases, the confirmation dialogue shows a warning in red. If you are in doubt, fix the finding yourself or contact the SEMCO support.\
+  Some findings cannot be fixed automatically at all, especially findings which require decisions which only you can make and everything which has been set outside of the reach of the site administration.\
+  The items of the 'Recompletion plugin' and 'Recommended Moodle settings' categories can be fixed automatically as well where this is possible. Please note that such a finding is not a fault of the SEMCO plugin, the automatic fix rather implements the recommendation from this README for you. The confirmation dialogue points this out as well.
+* The phone icon is shown instead of the wand icon if an item needs attention but cannot be fixed automatically. It explains which options you have, including contacting the SEMCO support.
+* The cog icon leads you to the Moodle page where you can fix the item's most important finding yourself. It is only shown if the item has a finding which can be fixed manually at all, as some findings can only be fixed automatically or not at all.
+* The bell icon mutes the item. A muted item keeps being checked, but it is shown with the status 'Muted', it is sorted to the bottom of its category, it does not name its findings and does not offer the wand, the phone and the cog icon anymore and it does not raise any alert anymore - neither on the plugin settings page nor on the Moodle System status page. This is meant for the recommendations which you have decided against on purpose, but every item can be muted. A muted item can be unmuted with the very same icon at any time.
 
 CLI tools
 ---------
@@ -277,85 +329,13 @@ Using this script is recommended in the following cases:
 * If you want to harden the web service token. The token is initially created during plugin installation without restrictions. And the CLI script allows you to set IP or date restrictions on the token without hassle.
 
 
-Backup & Restore
-----------------
+Checks API
+----------
 
-This enrolment plugin does not support backup & restore of courses.
-This is done by purpose as each particular course enrolment is mapped to a particular SEMCO booking ID which is a unique 1:1 mapping. If we would backup & restore course enrolments to duplicated / restored / imported courses, this constraint could not be guaranteed.
+This plugin also introduces these additional checks to the System status page:
 
+### \enrol_semco\check\healthcheck
 
-Theme support
--------------
+This check mirrors the most severe status which the plugin's health check (see above) reports: If at least one aspect has the status Error, i.e. if the SEMCO integration does not work anymore, the check reports an error. If the most severe aspect has the status Warning, the check reports a warning. If there are deviations but all of them are notices, the check reports an info result, as a notice neither breaks nor endangers the integration. Aspects with the status OK, N/A or Muted do not trigger it.
 
-This plugin is developed and tested on Moodle Core's Boost theme.
-It should also work with Boost child themes, including Moodle Core's Classic theme. However, we can't support any other theme than Boost.
-
-
-Plugin repositories
--------------------
-
-This plugin is published and regularly updated in the Moodle plugins repository:
-http://moodle.org/plugins/view/enrol_semco
-
-The latest stable version can be found on Github:
-https://github.com/semcosoft/moodle-enrol_semco
-
-
-Bug and problem reports
------------------------
-
-This plugin is carefully developed and thoroughly tested, but bugs and problems can always appear.
-
-Please report bugs and problems on Github:
-https://github.com/semcosoft/moodle-enrol_semco/issues
-
-
-Community feature proposals
----------------------------
-
-The functionality of this plugin is primarily implemented for the needs of our clients and published as-is to the community. We are aware that members of the community will have other needs and would love to see them solved by this plugin.
-
-Please issue feature proposals on Github:
-https://github.com/semcosoft/moodle-enrol_semco/issues
-
-Please create pull requests on Github:
-https://github.com/semcosoft/moodle-enrol_semco/pulls
-
-
-Moodle release support
-----------------------
-
-This plugin is maintained for all officially supported Moodle core versions, particularly the most recent major release of Moodle as well as the most recent LTS release of Moodle. Bugfixes are backported to each supported release. New features and improvements are backported to the each supported release as well, if possible.
-
-Apart from these maintained releases, previous versions of this plugin which work in legacy major releases of Moodle are still available as-is without any further updates in the Moodle Plugins repository.
-
-There may be several weeks after a new major release of Moodle has been published until we can do a compatibility check and fix problems if necessary. If you encounter problems with a new major release of Moodle - or can confirm that this plugin still works with a new major release - please let us know on Github.
-
-If you are running a legacy version of Moodle, but want or need to run the latest version of this plugin, you can get the latest version of the plugin, remove the line starting with $plugin->requires from version.php and use this latest plugin version then on your legacy Moodle. However, please note that you will run this setup completely at your own risk. We can't support this approach in any way and there is an undeniable risk for erratic behavior.
-
-
-Translating this plugin
------------------------
-
-This Moodle plugin is shipped with an english language pack only. All translations into other languages must be managed through AMOS (https://lang.moodle.org) by what they will become part of Moodle's official language pack.
-
-As the plugin creator, we manage the translation into german for our own local needs on AMOS. Please contribute your translation into all other languages in AMOS where they will be reviewed by the official language pack maintainers for Moodle.
-
-
-Right-to-left support
----------------------
-
-This plugin has not been tested with Moodle's support for right-to-left (RTL) languages.
-If you want to use this plugin with a RTL language and it doesn't work as-is, you are free to send us a pull request on Github with modifications.
-
-
-Maintainers
------------
-
-SEMCO Software Engineering GmbH
-
-
-Copyright
----------
-
-SEMCO Software Engineering GmbH
+The check covers the items of all categories, including the 'Recompletion plugin' and 'Recommended Moodle settings' categories. If you have decided against such a recommendation - or against using local_recompletion at all - on purpose, please mute the particular item on the health check page. A muted item does not trigger the check anymore, so you will not end up with a permanently failing check on the System status page.

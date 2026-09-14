@@ -38,7 +38,34 @@ if ($ADMIN->fulltree) {
     $CFG->debug = 0;
     $pageurl = $PAGE->url;
     $CFG->debug = $olddebug;
-    if (!during_initial_install() && $settingsurl->compare($pageurl, URL_MATCH_PARAMS) == true) {
+    $onsemcosettingspage = (!during_initial_install() && $settingsurl->compare($pageurl, URL_MATCH_PARAMS) == true);
+    $healthcheckurl = new \core\url('/enrol/semco/healthcheck.php');
+    if ($onsemcosettingspage == true) {
+        // If we are on the SEMCO settings page, we evaluate the health check and raise the admin's awareness at the very
+        // top of the page if necessary. We do this only on this particular page to save the health check's database
+        // queries on all other admin pages which include this settings file as well.
+        // This covers the items of all categories, including the recommendations. An admin who does not want to be
+        // bothered by a particular item can mute it on the health check page.
+        if (\enrol_semco\healthcheck\manager::has_healthchecks_needing_attention() == true) {
+            $notification = new \core\output\notification(
+                get_string('settings_healthcheckattention', 'enrol_semco', null, true) .
+                    \core\output\html_writer::div(
+                        \core\output\html_writer::link(
+                            $healthcheckurl,
+                            get_string('settings_healthcheckbutton', 'enrol_semco', null, true),
+                            // Bootstrap renders links within alerts in bold, this is not wanted for a button.
+                            ['class' => 'btn btn-secondary font-weight-normal']
+                        ),
+                        'mt-2'
+                    ),
+                \core\output\notification::NOTIFY_WARNING
+            );
+            $notification->set_show_closebutton(false);
+            $name = 'enrol_semco/settings_healthcheckattention';
+            $setting = new admin_setting_heading($name, '', $OUTPUT->render($notification));
+            $settings->add($setting);
+        }
+
         // Create connection information heading.
         $name = 'enrol_semco/settings_connectioninfoheading';
         $title = get_string('settings_connectioninfoheading', 'enrol_semco', null, true);
@@ -75,6 +102,25 @@ if ($ADMIN->fulltree) {
             $settings->add($setting);
         }
     }
+
+    // Create health check heading.
+    $name = 'enrol_semco/settings_healthcheckheading';
+    $title = get_string('settings_healthcheckheading', 'enrol_semco', null, true);
+    $description = '';
+    $setting = new admin_setting_heading($name, $title, $description);
+    $settings->add($setting);
+
+    // Create health check button widget.
+    $name = 'enrol_semco/settings_healthcheckbutton';
+    $title = get_string('settings_healthcheckbutton', 'enrol_semco', null, true);
+    $description = \core\output\html_writer::link(
+        $healthcheckurl,
+        get_string('settings_healthcheckbutton', 'enrol_semco', null, true),
+        ['class' => 'btn btn-secondary mb-2']
+    ) .
+            '<p>' . get_string('settings_healthcheckheading_desc', 'enrol_semco', null, true) . '</p>';
+    $setting = new admin_setting_description($name, $title, $description);
+    $settings->add($setting);
 
     // Create enrolment report heading.
     $name = 'enrol_semco/settings_enrolmentreportheading';
@@ -165,8 +211,9 @@ if ($ADMIN->fulltree) {
     $setting = new admin_setting_heading($name, $title, $description);
     $settings->add($setting);
 
-    // If local_recompletion is installed.
-    if (enrol_semco_check_local_recompletion() == true) {
+    // If local_recompletion is installed. This is the only place which accepts the simulated state of an automated
+    // test, as it does nothing but report which of the two notifications is shown.
+    if (enrol_semco_check_local_recompletion(true) == true) {
         // Create information widget.
         $name = 'enrol_semco/settings_coursecompletionnotfound';
         $title = '';
