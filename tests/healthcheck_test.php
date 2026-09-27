@@ -2090,22 +2090,27 @@ final class healthcheck_test extends \advanced_testcase {
             'SEMCO user ID' => [
                 'classname' => \enrol_semco\healthcheck\check\profilefield_userid::class,
                 'shortname' => 'semco_userid',
+                'unique' => true,
             ],
             'SEMCO user company' => [
                 'classname' => \enrol_semco\healthcheck\check\profilefield_usercompany::class,
                 'shortname' => 'semco_usercompany',
+                'unique' => false,
             ],
             'SEMCO user birthday' => [
                 'classname' => \enrol_semco\healthcheck\check\profilefield_userbirthday::class,
                 'shortname' => 'semco_userbirthday',
+                'unique' => false,
             ],
             'SEMCO user place of birth' => [
                 'classname' => \enrol_semco\healthcheck\check\profilefield_userplaceofbirth::class,
                 'shortname' => 'semco_userplaceofbirth',
+                'unique' => false,
             ],
             'SEMCO tenant shortname' => [
                 'classname' => \enrol_semco\healthcheck\check\profilefield_branchtoken::class,
                 'shortname' => 'semco_branchtoken',
+                'unique' => false,
             ],
         ];
     }
@@ -2115,9 +2120,10 @@ final class healthcheck_test extends \advanced_testcase {
      *
      * @param string $classname The class name of the health check item which is under test.
      * @param string $shortname The shortname of the user profile field which the health check item verifies.
+     * @param bool $unique Whether the user profile field is expected to force unique values.
      * @dataProvider profilefield_provider
      */
-    public function test_profilefield($classname, $shortname): void {
+    public function test_profilefield($classname, $shortname, $unique): void {
         global $DB;
 
         // The installation is intact.
@@ -2126,8 +2132,10 @@ final class healthcheck_test extends \advanced_testcase {
         // The item's summary must name the field by its shortname, so that an administrator is able to find it.
         $this->assertStringContainsString($shortname, $this->get_check($classname)->get_summary());
 
-        // Get the user profile field which the plugin installer has created.
+        // Get the user profile field which the plugin installer has created. Only the SEMCO user ID field forces unique
+        // values, the other fields do not as several users legitimately share the same value.
         $field = $DB->get_record('user_info_field', ['shortname' => $shortname], '*', MUST_EXIST);
+        $this->assertEquals($unique, (bool) $field->forceunique);
 
         // Make the field visible and unlock it.
         $DB->set_field('user_info_field', 'visible', 1, ['id' => $field->id]);
@@ -2149,13 +2157,27 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertFalse($check->supports_autofix());
         $DB->set_field('user_info_field', 'datatype', $field->datatype, ['id' => $field->id]);
 
-        // Drop the field's uniqueness. SEMCO relies on the field to identify a user unambiguously, thus this is a warning.
-        $DB->set_field('user_info_field', 'forceunique', 0, ['id' => $field->id]);
+        // Flip the field's uniqueness.
+        $DB->set_field('user_info_field', 'forceunique', $unique ? 0 : 1, ['id' => $field->id]);
         $check = $this->get_check($classname);
         $this->assertEquals(healthcheck::WARNING, $check->get_status());
-        $this->assertEquals([$classname::FINDING_NOTUNIQUE], $check->get_finding_ids());
-        $this->assertFalse($check->supports_autofix());
-        $DB->set_field('user_info_field', 'forceunique', $field->forceunique, ['id' => $field->id]);
+        if ($unique) {
+            // Dropping the uniqueness of the SEMCO user ID field is a warning as SEMCO relies on the field to identify
+            // a user unambiguously. It is not fixed automatically as the field may hold duplicate values by now.
+            $this->assertEquals([$classname::FINDING_NOTUNIQUE], $check->get_finding_ids());
+            $this->assertFalse($check->supports_autofix());
+            $DB->set_field('user_info_field', 'forceunique', $field->forceunique, ['id' => $field->id]);
+        } else {
+            // Enforcing the uniqueness of any other field is a warning as Moodle refuses to save the profile form of a
+            // user as soon as another user has the same value. Dropping the constraint again is harmless, thus it is
+            // fixed automatically.
+            $this->assertEquals([$classname::FINDING_UNIQUE], $check->get_finding_ids());
+            $this->assertTrue($check->supports_autofix());
+            $this->assertFalse($check->is_autofix_risky());
+            $check->autofix();
+            $this->assertEquals(healthcheck::OK, $check->get_status());
+            $this->assertEquals(0, $DB->get_field('user_info_field', 'forceunique', ['id' => $field->id]));
+        }
 
         // Shrink the field's maximum length. SEMCO's data does not fit into the field anymore, thus this is a warning.
         $DB->set_field('user_info_field', 'param2', 1, ['id' => $field->id]);
@@ -2208,6 +2230,7 @@ final class healthcheck_test extends \advanced_testcase {
         $newfield = $DB->get_record('user_info_field', ['shortname' => $shortname], '*', MUST_EXIST);
         $this->assertEquals($field->name, $newfield->name);
         $this->assertEquals($field->categoryid, $newfield->categoryid);
+        $this->assertEquals($unique, (bool) $newfield->forceunique);
 
         // If the category is gone along with the field, the automatic fix creates both.
         $DB->delete_records('user_info_field', ['id' => $newfield->id]);

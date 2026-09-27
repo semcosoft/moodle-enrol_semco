@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-09-27 - Glitch: The 'SEMCO User company', 'SEMCO User birthday', 'SEMCO User place of birth' and 'SEMCO Tenant shortname' user profile fields were created as unique fields although several users legitimately share the same value there. However, SEMCO was always able to write these fields via the webservice, Moodle just refused to save the profile form of a user manually if another user had the same value. The installer, an upgrade step and the health check now take care that only the 'SEMCO User ID' field is unique.
 * 2026-09-27 - Documentation: Swith the URL of local_recompletion to Github
 * 2026-09-05 - Feature: Add a health check which verifies every aspect of the plugin's installation, offers an automatic fix for the aspects which can be restored unambiguously, allows to mute particular checks and is also reported to the Moodle Checks API.
 * 2026-09-01 - Improvement: Support multilanguage course names and SEMCO profile field values when rendering the SEMCO enrolment report

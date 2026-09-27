@@ -367,7 +367,7 @@ function xmldb_enrol_semco_install() {
         $fielddata->description['format'] = 1;
         $fielddata->required = 0;
         $fielddata->locked = 1;
-        $fielddata->forceunique = 1;
+        $fielddata->forceunique = 0;
         $fielddata->signup = 0;
         $fielddata->visible = 0;
         $fielddata->categoryid = $profilefieldcategory->id;
@@ -415,7 +415,7 @@ function xmldb_enrol_semco_install() {
         $fielddata->description['format'] = 1;
         $fielddata->required = 0;
         $fielddata->locked = 1;
-        $fielddata->forceunique = 1;
+        $fielddata->forceunique = 0;
         $fielddata->signup = 0;
         $fielddata->visible = 0;
         $fielddata->categoryid = $profilefieldcategory->id;
@@ -463,7 +463,7 @@ function xmldb_enrol_semco_install() {
         $fielddata->description['format'] = 1;
         $fielddata->required = 0;
         $fielddata->locked = 1;
-        $fielddata->forceunique = 1;
+        $fielddata->forceunique = 0;
         $fielddata->signup = 0;
         $fielddata->visible = 0;
         $fielddata->categoryid = $profilefieldcategory->id;
@@ -511,7 +511,7 @@ function xmldb_enrol_semco_install() {
         $fielddata->description['format'] = 1;
         $fielddata->required = 0;
         $fielddata->locked = 1;
-        $fielddata->forceunique = 1;
+        $fielddata->forceunique = 0;
         $fielddata->signup = 0;
         $fielddata->visible = 0;
         $fielddata->categoryid = $profilefieldcategory->id;
