@@ -38,6 +38,17 @@ namespace enrol_semco\healthcheck;
  *    after the installation, or they implement a recommendation from the README.
  * 3. The shared helpers which several fixes are built upon.
  *
+ * A note on database access: Wherever Moodle or the companion plugin local_recompletion offer an API for a change,
+ * the fix uses it (webservice, core_role_set_assign_allowed(), profile_save_field(), set_config() and so on). The
+ * remaining fixes write with $DB directly, and only in two cases: Either the column has no setter in Moodle at all
+ * and the core administration pages write it directly as well (the fix then mirrors the core page, including the
+ * event which the core page triggers), or the record belongs to local_recompletion which does not offer an API for
+ * its course settings and writes them directly in all of its own code. Each of these fixes explains its case in its
+ * own comment. In all cases, the fix changes a record which the plugin installer has created or which the README
+ * documents as a recommendation. No fix processes user input: The fixes are only reachable from healthcheck.php which
+ * requires the enrol/semco:viewhealthcheck capability (declared with RISK_CONFIG and granted to no role by default)
+ * and a sesskey, and they act on the record ids which the health check items have assessed beforehand.
+ *
  * @package    enrol_semco
  * @copyright  2026 Alexander Bias <bias@alexanderbias.de>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -278,6 +289,9 @@ class autofix {
      * Moodle generates the token with a creator id of 0 which results in the fact that the token is not shown on the
      * webservice tokens page, thus the plugin installer sets the SEMCO webservice user as its creator.
      *
+     * Moodle does not offer an API to change the creator of a token, the core administration does not allow to edit a
+     * token after its creation at all, thus the column is written directly. The token is the plugin's own record.
+     *
      * @param int $tokenid The id of the token.
      * @param int $userid The id of the SEMCO webservice user.
      * @return void
@@ -422,13 +436,7 @@ class autofix {
      * @return void
      */
     public static function enable_semco_service(int $serviceid): void {
-        global $DB;
-
-        $DB->update_record('external_services', (object) [
-            'id' => $serviceid,
-            'enabled' => 1,
-            'timemodified' => time(),
-        ]);
+        self::update_semco_service_columns($serviceid, ['enabled' => 1]);
     }
 
     /**
@@ -438,31 +446,60 @@ class autofix {
      * @return void
      */
     public static function restrict_semco_service(int $serviceid): void {
-        global $DB;
+        self::update_semco_service_columns($serviceid, ['restrictedusers' => 1]);
+    }
 
-        $DB->update_record('external_services', (object) [
-            'id' => $serviceid,
-            'restrictedusers' => 1,
-            'timemodified' => time(),
-        ]);
+    /**
+     * Update the given columns of the SEMCO external service.
+     *
+     * This uses the same core API and triggers the same event as the core external services administration page does
+     * when an admin saves the service form, see admin/webservice/service.php.
+     *
+     * @param int $serviceid The id of the SEMCO external service.
+     * @param array $fields The columns to update, indexed by column name.
+     * @return void
+     */
+    private static function update_semco_service_columns(int $serviceid, array $fields): void {
+        global $CFG;
+
+        // Require the webservice library.
+        require_once($CFG->dirroot . '/webservice/lib.php');
+
+        // Update the service.
+        (new \webservice())->update_external_service((object) (['id' => $serviceid] + $fields));
+
+        // Trigger the same event as Moodle triggers when the service is updated so that the change is logged.
+        \core\event\webservice_service_updated::create(['objectid' => $serviceid])->trigger();
     }
 
     /**
      * Revoke the authorisation of the given users to use the SEMCO external service.
+     *
+     * This uses the same core API and triggers the same event as the core authorised users administration page does
+     * when an admin removes a user, see admin/webservice/service_users.php.
      *
      * @param int $serviceid The id of the SEMCO external service.
      * @param int[] $userids The ids of the users.
      * @return void
      */
     public static function revoke_semco_service_authorisation(int $serviceid, array $userids): void {
-        global $DB;
+        global $CFG;
 
-        [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'user');
-        $DB->delete_records_select(
-            'external_services_users',
-            'externalserviceid = :serviceid AND userid ' . $insql,
-            $inparams + ['serviceid' => $serviceid]
-        );
+        // Require the webservice library.
+        require_once($CFG->dirroot . '/webservice/lib.php');
+
+        // Iterate over the users.
+        $webservicemanager = new \webservice();
+        foreach ($userids as $userid) {
+            // Revoke the authorisation.
+            $webservicemanager->remove_ws_authorised_user((object) ['id' => $userid], $serviceid);
+
+            // Trigger the same event as Moodle triggers when a user is removed so that the change is logged.
+            \core\event\webservice_service_user_removed::create([
+                'objectid' => $serviceid,
+                'relateduserid' => $userid,
+            ])->trigger();
+        }
     }
 
     /**
@@ -471,6 +508,10 @@ class autofix {
      * The plugin installer does not restrict the SEMCO webservice token to particular IP addresses, thus this restores
      * the installer's state. Moodle stores an unrestricted token with an empty restriction, see
      * \core_external\util::generate_token().
+     *
+     * Moodle does not offer an API to change the IP restriction of a token, the core administration does not allow to
+     * edit a token after its creation at all, thus the column is written directly. The token is the plugin's own
+     * record.
      *
      * @param int $tokenid The id of the token.
      * @return void
@@ -488,17 +529,29 @@ class autofix {
      * thus this restores the installer's state. Moodle stores an unrestricted authorisation with an empty restriction,
      * see \webservice::add_ws_authorised_user().
      *
+     * This uses the same core API as the core authorised user settings administration page does when an admin saves
+     * the settings form, see admin/webservice/service_user_settings.php. Moodle does not trigger an event there.
+     *
      * @param int $authorisationid The id of the authorisation record.
      * @return void
      */
     public static function remove_semco_service_authorisation_iprestriction(int $authorisationid): void {
-        global $DB;
+        global $CFG;
 
-        $DB->set_field('external_services_users', 'iprestriction', null, ['id' => $authorisationid]);
+        // Require the webservice library.
+        require_once($CFG->dirroot . '/webservice/lib.php');
+
+        // Update the authorisation.
+        (new \webservice())->update_ws_authorised_user((object) ['id' => $authorisationid, 'iprestriction' => null]);
     }
 
     /**
      * Move a user profile field to the end of a user profile field category.
+     *
+     * Moodle does not offer an API to move a field into another category: profile_move_field() only moves a field
+     * within its category and profile_save_field() expects the complete data of the field definition form. Thus the
+     * category is written directly, followed by the same renumbering which Moodle does after every move. The field is
+     * the plugin's own record which the installer created.
      *
      * @param \stdClass $field The user profile field record.
      * @param int $categoryid The id of the category.
@@ -520,6 +573,10 @@ class autofix {
     /**
      * Stop a user profile field from forcing unique values, just as the plugin updater does for the SEMCO user profile
      * fields which several users legitimately share the same value in.
+     *
+     * Moodle does not offer an API to change a single setting of a field, profile_save_field() expects the complete
+     * data of the field definition form. Thus the column is written directly, just as the plugin updater does. The
+     * field is the plugin's own record which the installer created.
      *
      * @param \stdClass $field The user profile field record.
      * @return void
@@ -638,8 +695,14 @@ class autofix {
     /**
      * Set a local_recompletion setting in the given courses.
      *
-     * local_recompletion does not offer an API for its course settings, its own course settings page writes the
-     * records directly as well, see local/recompletion/recompletion.php.
+     * local_recompletion does not offer an API for its course settings: Its own course settings page, its event
+     * observer, its scheduled task and its restore code all write the records directly, see
+     * local/recompletion/recompletion.php for the settings page. The table is a plain course / name / value store
+     * and the plugin's readers (the webservice functions in classes/external.php and the health check items) rely on
+     * that schema anyway. This function is the only place where the plugin writes to that table, thus a future API of
+     * local_recompletion can be adopted here alone. The health check items which call this function have verified
+     * with enrol_semco_check_local_recompletion() beforehand that a supported version of local_recompletion is
+     * installed.
      *
      * @param int[] $courseids The ids of the courses to change.
      * @param string $name The name of the setting.
