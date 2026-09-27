@@ -53,8 +53,11 @@ abstract class profilefield extends healthcheck {
     /** @var string Finding: The user profile field is shown on the signup page. */
     public const FINDING_SIGNUP = 'signup';
 
-    /** @var string Finding: The user profile field does not force unique values. */
+    /** @var string Finding: The user profile field does not force unique values although it should. */
     public const FINDING_NOTUNIQUE = 'notunique';
+
+    /** @var string Finding: The user profile field forces unique values although it should not. */
+    public const FINDING_UNIQUE = 'unique';
 
     /** @var string Finding: The user profile field has an unexpected maximum length. */
     public const FINDING_PARAM2 = 'param2';
@@ -95,6 +98,13 @@ abstract class profilefield extends healthcheck {
      * @return int
      */
     abstract protected function get_expected_param_length(): int;
+
+    /**
+     * Return whether the user profile field is expected to force unique values.
+     *
+     * @return bool
+     */
+    abstract protected function is_expected_unique(): bool;
 
     /**
      * Return the health check item category.
@@ -141,6 +151,8 @@ abstract class profilefield extends healthcheck {
         return get_string('healthcheck_profilefield_description', 'enrol_semco', [
             'name' => $this->get_name(),
             'shortname' => $this->get_shortname(),
+            'unique' => $this->is_expected_unique() ?
+                get_string('healthcheck_profilefield_description_unique', 'enrol_semco') : '',
         ]);
     }
 
@@ -193,8 +205,8 @@ abstract class profilefield extends healthcheck {
             $status = $this->escalate($status, healthcheck::NOTICE);
         }
 
-        // Check that the field is locked, unique and invisible. A field which deviates here can expose the data which
-        // SEMCO has written to the users or can let them change it.
+        // Check that the field is locked and invisible. A field which deviates here can expose the data which SEMCO has
+        // written to the users or can let them change it.
         if (empty($field->locked)) {
             $this->add_finding(
                 self::FINDING_NOTLOCKED,
@@ -202,15 +214,27 @@ abstract class profilefield extends healthcheck {
             );
             $status = $this->escalate($status, healthcheck::WARNING);
         }
-        if (empty($field->forceunique)) {
+        if (!empty($field->visible)) {
+            $this->add_finding(self::FINDING_VISIBLE, get_string('healthcheck_profilefield_findingvisible', 'enrol_semco'));
+            $status = $this->escalate($status, healthcheck::WARNING);
+        }
+
+        // Check the field's uniqueness. The SEMCO user ID field must force unique values as SEMCO relies on it to
+        // identify a user unambiguously. The other fields must not: Several users legitimately share the same value,
+        // and Moodle core validates the uniqueness as soon as somebody saves the profile form of such a user (the
+        // webservices which SEMCO uses do not validate it, thus SEMCO itself keeps working).
+        if ($this->is_expected_unique() && empty($field->forceunique)) {
             $this->add_finding(
                 self::FINDING_NOTUNIQUE,
                 get_string('healthcheck_profilefield_findingnotunique', 'enrol_semco')
             );
             $status = $this->escalate($status, healthcheck::WARNING);
         }
-        if (!empty($field->visible)) {
-            $this->add_finding(self::FINDING_VISIBLE, get_string('healthcheck_profilefield_findingvisible', 'enrol_semco'));
+        if (!$this->is_expected_unique() && !empty($field->forceunique)) {
+            $this->add_finding(
+                self::FINDING_UNIQUE,
+                get_string('healthcheck_profilefield_findingunique', 'enrol_semco')
+            );
             $status = $this->escalate($status, healthcheck::WARNING);
         }
 
@@ -279,10 +303,11 @@ abstract class profilefield extends healthcheck {
      * Return the definitions of the findings which this health check item can report.
      *
      * A field which is gone is recreated automatically, which is harmless: It is exactly what the plugin installer does,
-     * and the data which the field has held is lost anyway. A field which sits in the wrong category is moved. Any other
-     * deviation is not fixed automatically, as the field holds the data which SEMCO has written and may have been
-     * adjusted on purpose. The findings which can expose or
-     * damage this data are defined first, the cosmetic ones last.
+     * and the data which the field has held is lost anyway. A field which sits in the wrong category is moved. A field
+     * which forces unique values although it should not is relieved of that constraint, which is harmless as well as
+     * it does not touch the data. Any other deviation is not fixed automatically, as the field holds the data which
+     * SEMCO has written and may have been adjusted on purpose. The findings which can expose or damage this data are
+     * defined first, the cosmetic ones last.
      *
      * @return array[]
      */
@@ -296,6 +321,8 @@ abstract class profilefield extends healthcheck {
             self::FINDING_REQUIRED => $definition,
             self::FINDING_SIGNUP => $definition,
             self::FINDING_NOTUNIQUE => $definition,
+            // Dropping the uniqueness constraint is harmless, the data of the field is not affected by that.
+            self::FINDING_UNIQUE => ['autofix' => true] + $definition,
             self::FINDING_PARAM2 => $definition,
             self::FINDING_PARAM1 => $definition,
             // Moving the field into the SEMCO user profile field category is harmless, the data of the field is not
@@ -322,8 +349,14 @@ abstract class profilefield extends healthcheck {
                     $this->get_installer_fullname(),
                     $category->id,
                     $this->get_expected_param_size(),
-                    $this->get_expected_param_length()
+                    $this->get_expected_param_length(),
+                    $this->is_expected_unique()
                 );
+                break;
+
+            // Stop the field from forcing unique values, just as the plugin updater does.
+            case self::FINDING_UNIQUE:
+                autofix::unset_profilefield_forceunique($this->get_profile_field());
                 break;
 
             // Move the field to the end of the SEMCO user profile field category, which exists as the finding could
