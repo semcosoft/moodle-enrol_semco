@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-09-27 - Documentation: Swith the URL of local_recompletion to Github
 * 2026-09-05 - Feature: Add a health check which verifies every aspect of the plugin's installation, offers an automatic fix for the aspects which can be restored unambiguously, allows to mute particular checks and is also reported to the Moodle Checks API.
 * 2026-09-01 - Improvement: Support multilanguage course names and SEMCO profile field values when rendering the SEMCO enrolment report
 * 2026-08-30 - Improvement: Add a filter for email address, SEMCO user ID, SEMCO booking ID, course, enrolment status and course completion status to the SEMCO enrolment report
