@@ -311,14 +311,15 @@ class autofix {
     /**
      * Create a SEMCO user profile field, just as the plugin installer does.
      *
-     * All SEMCO user profile fields share the same shape - a locked, unique and hidden text field - and differ only in
-     * their shortname, their name and their size.
+     * All SEMCO user profile fields share the same shape - a locked and hidden text field - and differ only in their
+     * shortname, their name, their size and whether they force unique values.
      *
      * @param string $shortname The shortname of the field.
      * @param string $name The name of the field.
      * @param int $categoryid The id of the SEMCO user profile field category.
      * @param int $displaysize The display size of the field (param1).
      * @param int $maxlength The maximum length of the field (param2).
+     * @param bool $forceunique Whether the field forces unique values.
      * @return void
      */
     public static function create_semco_profilefield(
@@ -326,7 +327,8 @@ class autofix {
         string $name,
         int $categoryid,
         int $displaysize,
-        int $maxlength
+        int $maxlength,
+        bool $forceunique
     ): void {
         global $CFG;
 
@@ -343,7 +345,7 @@ class autofix {
         $fielddata->description = ['text' => '', 'format' => FORMAT_HTML];
         $fielddata->required = 0;
         $fielddata->locked = 1;
-        $fielddata->forceunique = 1;
+        $fielddata->forceunique = $forceunique ? 1 : 0;
         $fielddata->signup = 0;
         $fielddata->visible = 0;
         $fielddata->categoryid = $categoryid;
@@ -511,6 +513,19 @@ class autofix {
         $field->sortorder = $DB->count_records('user_info_field', ['categoryid' => $categoryid]) + 1;
         $DB->update_record('user_info_field', $field);
         profile_reorder_fields();
+    }
+
+    /**
+     * Stop a user profile field from forcing unique values, just as the plugin updater does for the SEMCO user profile
+     * fields which several users legitimately share the same value in.
+     *
+     * @param \stdClass $field The user profile field record.
+     * @return void
+     */
+    public static function unset_profilefield_forceunique(\stdClass $field): void {
+        global $DB;
+
+        $DB->set_field('user_info_field', 'forceunique', 0, ['id' => $field->id]);
     }
 
     /**
