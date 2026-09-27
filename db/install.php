@@ -184,7 +184,16 @@ function xmldb_enrol_semco_install() {
     // If the SEMCO webservice user does not exist yet. As this plugin is installed freshly, this should be the case.
     if ($DB->record_exists('user', ['username' => ENROL_SEMCO_ROLEANDUSERNAME]) == false) {
         // Create the SEMCO webservice user.
-        $semcouser = create_user_record(ENROL_SEMCO_ROLEANDUSERNAME, md5(rand()), ENROL_SEMCO_AUTH);
+        // Security note about the password argument: The 'webservice' authentication method (ENROL_SEMCO_AUTH) is not
+        // an internal authentication method, see auth_plugin_webservice::is_internal(), thus
+        // auth_plugin_base::prevent_local_passwords() returns true for it and create_user_record() discards the given
+        // password and stores the AUTH_PASSWORD_NOT_CACHED marker in the user record instead. No password hash is
+        // stored anywhere. validate_internal_user_password() rejects this marker unconditionally, thus the username /
+        // password authentication of the webservices, see auth_plugin_webservice::user_login_webservice(), can never
+        // succeed for this account and SEMCO has to authenticate with the webservice token. The random password is
+        // nothing but a formal argument. It is generated with the CSPRNG-backed random_string() nevertheless, and the
+        // 'userauthmethod' health check verifies that the account keeps the marker and does not gain a hash later on.
+        $semcouser = create_user_record(ENROL_SEMCO_ROLEANDUSERNAME, random_string(40), ENROL_SEMCO_AUTH);
 
         // And add firstname, lastname and email to the user account.
         $semcouser->firstname = get_string('installer_userfirstname', 'enrol_semco');
