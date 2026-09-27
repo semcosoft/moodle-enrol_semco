@@ -76,4 +76,13 @@ class profilefield_userid extends profilefield {
     protected function get_expected_param_length(): int {
         return 16;
     }
+
+    /**
+     * Return whether the user profile field is expected to force unique values.
+     *
+     * @return bool
+     */
+    protected function is_expected_unique(): bool {
+        return true;
+    }
 }
