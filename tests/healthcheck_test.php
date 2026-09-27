@@ -756,10 +756,18 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::ERROR, $check->get_status());
         $this->assertCount(2, $check->get_findings());
 
-        // And fix it automatically.
+        // And fix it automatically. The fix must log its changes just as the core administration page does.
         $this->assertTrue($check->supports_autofix());
+        $sink = $this->redirectEvents();
         $check->autofix();
+        $events = $sink->get_events();
+        $sink->close();
         $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertCount(2, $events);
+        foreach ($events as $event) {
+            $this->assertInstanceOf(\core\event\webservice_service_updated::class, $event);
+            $this->assertEquals($this->semcoservice->id, $event->objectid);
+        }
 
         // Without the external service, this check cannot be assessed.
         $DB->delete_records('external_services', ['id' => $this->semcoservice->id]);
@@ -855,9 +863,18 @@ final class healthcheck_test extends \advanced_testcase {
         // have authorised that user on purpose.
         $this->assertTrue($check->supports_autofix());
         $this->assertTrue($check->is_autofix_risky());
+        $sink = $this->redirectEvents();
         $check->autofix();
+        $events = $sink->get_events();
+        $sink->close();
         $this->assertEquals(healthcheck::OK, $check->get_status());
         $this->assertFalse($DB->record_exists('external_services_users', ['userid' => $otheruser->id]));
+
+        // The fix must log the revocation just as the core administration page does.
+        $this->assertCount(1, $events);
+        $this->assertInstanceOf(\core\event\webservice_service_user_removed::class, $events[0]);
+        $this->assertEquals($this->semcoservice->id, $events[0]->objectid);
+        $this->assertEquals($otheruser->id, $events[0]->relateduserid);
 
         // It must not touch the authorisation of the SEMCO webservice user.
         $this->assertTrue($DB->record_exists('external_services_users', [
