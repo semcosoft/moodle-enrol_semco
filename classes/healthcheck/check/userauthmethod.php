@@ -41,6 +41,9 @@ class userauthmethod extends healthcheck {
     /** @var string Finding: The SEMCO webservice user uses an authentication method which it must not use. */
     public const FINDING_WRONGAUTH = 'wrongauth';
 
+    /** @var string Finding: The SEMCO webservice user carries a password hash although it must not use passwords. */
+    public const FINDING_PASSWORDHASH = 'passwordhash';
+
     /**
      * Return the health check item id.
      *
@@ -99,14 +102,14 @@ class userauthmethod extends healthcheck {
             return healthcheck::NA;
         }
 
-        // If the user uses the expected authentication method, everything is fine.
-        if ($user->auth === ENROL_SEMCO_AUTH) {
-            return healthcheck::OK;
+        // Start with an intact state.
+        $status = healthcheck::OK;
 
-            // If the user uses the manual authentication method, the SEMCO integration is most likely still working:
-            // A manual account can use the webservices as well as long as everything else is configured properly.
-            // It is not what this account is meant to be, though, thus we do not report a broken installation here.
-        } else if ($user->auth === 'manual') {
+        // Check the authentication method. If the user uses the expected authentication method, this aspect is fine.
+        // If the user uses the manual authentication method, the SEMCO integration is most likely still working:
+        // A manual account can use the webservices as well as long as everything else is configured properly.
+        // It is not what this account is meant to be, though, thus we do not report a broken installation here.
+        if ($user->auth === 'manual') {
             $this->add_finding(
                 self::FINDING_MANUALAUTH,
                 get_string('healthcheck_userauthmethod_findingmanualauth', 'enrol_semco', [
@@ -114,7 +117,7 @@ class userauthmethod extends healthcheck {
                     'found' => s($user->auth),
                 ])
             );
-            return healthcheck::WARNING;
+            $status = $this->escalate($status, healthcheck::WARNING);
 
             // With any other authentication method, we report a broken installation.
             // Please note that this is a logical and not a technical verdict: The token login which SEMCO uses only
@@ -124,7 +127,7 @@ class userauthmethod extends healthcheck {
             // its accounts on its own (and which may suspend, update or delete them on its next sync run). That SEMCO
             // still gets through is a side effect of the token login which we must not rely on, thus the integration
             // has to be considered as broken.
-        } else {
+        } else if ($user->auth !== ENROL_SEMCO_AUTH) {
             $this->add_finding(
                 self::FINDING_WRONGAUTH,
                 get_string('healthcheck_userauthmethod_findingwrongauth', 'enrol_semco', [
@@ -132,8 +135,24 @@ class userauthmethod extends healthcheck {
                     'found' => s($user->auth),
                 ])
             );
-            return healthcheck::ERROR;
+            $status = $this->escalate($status, healthcheck::ERROR);
         }
+
+        // Check the password hash. Moodle stores the AUTH_PASSWORD_NOT_CACHED marker instead of a hash for this
+        // authentication method, see the security note in db/install.php. A hash may have sneaked in nevertheless, for
+        // example if an admin has switched the authentication method to 'manual', has set a password and has switched
+        // the method back. The authentication method alone does not tell whether this has happened, thus we check the
+        // stored hash explicitly.
+        if ($user->password !== AUTH_PASSWORD_NOT_CACHED) {
+            $this->add_finding(
+                self::FINDING_PASSWORDHASH,
+                get_string('healthcheck_userauthmethod_findingpasswordhash', 'enrol_semco')
+            );
+            $status = $this->escalate($status, healthcheck::WARNING);
+        }
+
+        // Return the status.
+        return $status;
     }
 
     /**
@@ -149,6 +168,7 @@ class userauthmethod extends healthcheck {
         return [
             self::FINDING_WRONGAUTH => ['autofix' => true, 'risky' => false, 'url' => $userurl],
             self::FINDING_MANUALAUTH => ['autofix' => true, 'risky' => false, 'url' => $userurl],
+            self::FINDING_PASSWORDHASH => ['autofix' => true, 'risky' => false, 'url' => $userurl],
         ];
     }
 
@@ -165,6 +185,11 @@ class userauthmethod extends healthcheck {
             case self::FINDING_WRONGAUTH:
             case self::FINDING_MANUALAUTH:
                 autofix::update_semco_user($this->get_semco_user()->id, ['auth' => ENROL_SEMCO_AUTH]);
+                break;
+
+            // Remove the password hash and store the marker which Moodle stores for such accounts itself.
+            case self::FINDING_PASSWORDHASH:
+                autofix::remove_semco_user_password($this->get_semco_user()->id);
                 break;
         }
     }

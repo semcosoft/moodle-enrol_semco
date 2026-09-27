@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-09-27 - Security: A security audit flagged that the installer and the health check passed a password which was generated with PHP's non-cryptographic rand() function to Moodle when creating the 'SEMCO webservice' user. As the 'webservice' authentication method does not use passwords, Moodle discards this password and stores a marker instead of a hash, so there was no exploitable weakness. Nevertheless, a cryptographically strong random password is passed now, the reasoning is documented in the code and the 'SEMCO webservice user: Authentication method' health check now also verifies that the account does not carry a password hash and offers an automatic fix.
 * 2026-09-27 - Glitch: The 'SEMCO User company', 'SEMCO User birthday', 'SEMCO User place of birth' and 'SEMCO Tenant shortname' user profile fields were created as unique fields although several users legitimately share the same value there. However, SEMCO was always able to write these fields via the webservice, Moodle just refused to save the profile form of a user manually if another user had the same value. The installer, an upgrade step and the health check now take care that only the 'SEMCO User ID' field is unique.
 * 2026-09-27 - Documentation: Swith the URL of local_recompletion to Github
 * 2026-09-05 - Feature: Add a health check which verifies every aspect of the plugin's installation, offers an automatic fix for the aspects which can be restored unambiguously, allows to mute particular checks and is also reported to the Moodle Checks API.

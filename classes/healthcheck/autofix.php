@@ -167,7 +167,7 @@ class autofix {
     /**
      * Create the SEMCO webservice user, just as the plugin installer does.
      *
-     * The user authenticates with a webservice token only, thus it gets a random password which nobody knows.
+     * The user authenticates with a webservice token only, see the security note in db/install.php.
      * Everything which depends on the user - its role assignment, its authorisation for the SEMCO external service and
      * its webservice token - is not set up here, each of these aspects has a fix of its own.
      *
@@ -180,7 +180,9 @@ class autofix {
         require_once($CFG->dirroot . '/user/lib.php');
 
         // Create the user and add its names and its email address.
-        $user = create_user_record(ENROL_SEMCO_ROLEANDUSERNAME, md5(rand()), ENROL_SEMCO_AUTH);
+        // The random password is nothing but a formal argument which Moodle discards for this authentication method,
+        // see the security note in db/install.php.
+        $user = create_user_record(ENROL_SEMCO_ROLEANDUSERNAME, random_string(40), ENROL_SEMCO_AUTH);
         $user->firstname = get_string('installer_userfirstname', 'enrol_semco');
         $user->lastname = get_string('installer_userlastname', 'enrol_semco');
         $user->email = self::get_semco_user_email();
@@ -598,6 +600,28 @@ class autofix {
 
         // Update the user.
         user_update_user((object) (['id' => $userid] + $fields), false);
+    }
+
+    /**
+     * Remove the password hash of the SEMCO webservice user and store the AUTH_PASSWORD_NOT_CACHED marker instead.
+     *
+     * The marker is what Moodle stores itself for an account of a non-internal authentication method like
+     * 'webservice', see create_user_record() and update_internal_user_password(). We deliberately do not call
+     * update_internal_user_password() here: It would store the same marker, but it would also delete all webservice
+     * tokens of the user if $CFG->passwordchangetokendeletion is enabled and would cut off SEMCO this way.
+     *
+     * @param int $userid The id of the SEMCO webservice user.
+     * @return void
+     */
+    public static function remove_semco_user_password(int $userid): void {
+        global $DB;
+
+        // Replace the hash with the marker.
+        $DB->set_field('user', 'password', AUTH_PASSWORD_NOT_CACHED, ['id' => $userid]);
+
+        // Trigger the same event as Moodle triggers when it updates a password so that the change is logged.
+        $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
+        \core\event\user_password_updated::create_from_user($user)->trigger();
     }
 
     /**
