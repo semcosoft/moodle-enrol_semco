@@ -1425,6 +1425,28 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::OK, $check->get_status());
         $this->assertEquals(ENROL_SEMCO_AUTH, $DB->get_field('user', 'auth', ['id' => $this->semcouser->id]));
 
+        // A password hash on the account is not a broken installation, but it would open the username / password
+        // authentication of the webservices to this technical account which nobody needs.
+        $DB->set_field('user', 'password', hash_internal_user_password('dummy'), ['id' => $this->semcouser->id]);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+
+        // Together with the manual authentication method, both findings are reported.
+        $DB->set_field('user', 'auth', 'manual', ['id' => $this->semcouser->id]);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(2, $check->get_findings());
+
+        // And fix it automatically. The webservice tokens of the user must survive the fix.
+        $tokencount = $DB->count_records('external_tokens', ['userid' => $this->semcouser->id]);
+        $this->assertTrue($check->supports_autofix());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertEquals(ENROL_SEMCO_AUTH, $DB->get_field('user', 'auth', ['id' => $this->semcouser->id]));
+        $this->assertEquals(AUTH_PASSWORD_NOT_CACHED, $DB->get_field('user', 'password', ['id' => $this->semcouser->id]));
+        $this->assertEquals($tokencount, $DB->count_records('external_tokens', ['userid' => $this->semcouser->id]));
+
         // Without the SEMCO webservice user, this check cannot be assessed.
         $DB->set_field('user', 'deleted', 1, ['id' => $this->semcouser->id]);
         $check = $this->get_check($classname);
