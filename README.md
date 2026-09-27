@@ -33,7 +33,7 @@ Soft dependencies
 -----------------
 
 The SEMCO enrolment plugin is able to reset a user's course completion if he gets enrolled into a particular course by SEMCO once more.
-To realize this course completion reset and to avoid to re-invent the wheel, this plugin has a soft dependency to local_recompletion (see https://moodle.org/plugins/local_recompletion) by Dan Marsden.
+To realize this course completion reset and to avoid to re-invent the wheel, this plugin has a soft dependency to local_recompletion (see https://github.com/danmarsden/moodle-local_recompletion) by Dan Marsden.
 
 Please install local_recompletion with at least version 2024071103 alongside this plugin if you plan to use subsequent user enrolments into the same course and need to reset course completion.
 If you do not need plan to reset course completion, you do not need to install local_recompletion.
