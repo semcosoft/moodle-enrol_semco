@@ -324,12 +324,14 @@ $string['healthcheck_profilefield_name_userplaceofbirth'] = 'Place of birth';
 $string['healthcheck_profilefield_name_branchtoken'] = 'Tenant shortname';
 $string['healthcheck_profilefield_title'] = 'SEMCO user profile field: {$a->name}';
 $string['healthcheck_profilefield_summary'] = 'The SEMCO user profile field "{$a->name}" ({$a->shortname}) must exist and must be configured as the plugin installer has created it.';
-$string['healthcheck_profilefield_description'] = 'SEMCO writes additional user data into dedicated Moodle user profile fields. One of them is the SEMCO user profile field "{$a->name}" with the shortname {$a->shortname}. The plugin installer has created it as a locked, unique and invisible text field within the SEMCO user profile field category.';
+$string['healthcheck_profilefield_description'] = 'SEMCO writes additional user data into dedicated Moodle user profile fields. One of them is the SEMCO user profile field "{$a->name}" with the shortname {$a->shortname}. The plugin installer has created it as a locked and invisible text field within the SEMCO user profile field category.{$a->unique}';
+$string['healthcheck_profilefield_description_unique'] = ' In addition, the field forces unique values as SEMCO relies on it to identify a user unambiguously.';
 $string['healthcheck_profilefield_findingmissing'] = 'A user profile field with the shortname "{$a}" does not exist. SEMCO is still able to create and to update users, but the data which it writes into this field gets lost silently.';
 $string['healthcheck_profilefield_findingdatatype'] = 'The user profile field has the data type "{$a->found}" instead of "{$a->expected}".';
 $string['healthcheck_profilefield_findingcategory'] = 'The user profile field is not placed in the user profile field category "{$a}".';
 $string['healthcheck_profilefield_findingnotlocked'] = 'The user profile field is not locked, thus users are able to edit the data which SEMCO has written.';
 $string['healthcheck_profilefield_findingnotunique'] = 'The user profile field does not force unique values, thus the same value can be used for more than one user.';
+$string['healthcheck_profilefield_findingunique'] = 'The user profile field forces unique values although several users may legitimately share the same value. As soon as two users share the same value, Moodle refuses to save the profile form of the second one.';
 $string['healthcheck_profilefield_findingvisible'] = 'The user profile field is visible, thus the data which SEMCO has written is shown in the user profile.';
 $string['healthcheck_profilefield_findingrequired'] = 'The user profile field is required, thus every user has to fill it even if he does not come from SEMCO.';
 $string['healthcheck_profilefield_findingsignup'] = 'The user profile field is shown on the signup page.';
@@ -465,6 +467,7 @@ $string['updater_2023092610_fixprofilefield4succ'] = 'The shortname of the field
 $string['updater_2023092610_fixprofilefield4fail'] = 'The installer has tried to change the shortname of the field with an upgrade step now, but it failed. Please go to the user profile fields management page, search for the \'SEMCO User place of birth\' field and change the shortname to \'semco_userplaceofbirth\'';
 $string['updater_2023100902_addcapability'] = 'The capability \'enrol/semco:resetcoursecompletion\' was added to the role \'SEMCO webservice\' during the plugin update.';
 $string['updater_2025100601_addcapability'] = 'The capability \'enrol/semco:checkuserexistence\' was added to the role \'SEMCO webservice\' during the plugin update.';
+$string['updater_2026042002_removeforceunique'] = 'The profile field \'{$a}\' was reconfigured to not force unique values anymore during the plugin update. Several users may legitimately share the same value in this field.';
 
 // Capabilities.
 $string['semco:checkuserexistence'] = 'Check the existence of a Moodle user by a given field';

@@ -346,5 +346,40 @@ function xmldb_enrol_semco_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025100601, 'enrol', 'semco');
     }
 
+    if ($oldversion < 2025100604) {
+        // Up to now, the plugin installer created all SEMCO user profile fields with the 'Should the data be unique?'
+        // setting enabled. This is right for the SEMCO user ID field which identifies a user unambiguously, but it is
+        // wrong for the SEMCO user company, user birthday, user place of birth and tenant shortname fields: Several
+        // users legitimately share the same company, birthday, place of birth or tenant. SEMCO itself is not affected
+        // as the Moodle core webservices do not validate the uniqueness, but Moodle refuses to save the profile form of
+        // a user as soon as another user has the same value in one of these fields.
+        // For all upgraded installations, we have to disable the setting for these four fields.
+        $shortnames = [
+            ENROL_SEMCO_USERFIELD2NAME,
+            ENROL_SEMCO_USERFIELD3NAME,
+            ENROL_SEMCO_USERFIELD4NAME,
+            ENROL_SEMCO_USERFIELD5NAME,
+        ];
+        foreach ($shortnames as $shortname) {
+            // If the field exists and forces unique values.
+            $field = $DB->get_record('user_info_field', ['shortname' => $shortname]);
+            if ($field != false && !empty($field->forceunique)) {
+                // Disable the setting.
+                $DB->set_field('user_info_field', 'forceunique', 0, ['id' => $field->id]);
+
+                // And show a notification about that fact (this also looks fine in the CLI installer).
+                $notification = new \core\output\notification(
+                    get_string('updater_2026042002_removeforceunique', 'enrol_semco', format_string($field->name)),
+                    \core\output\notification::NOTIFY_INFO
+                );
+                $notification->set_show_closebutton(false);
+                echo $OUTPUT->render($notification);
+            }
+        }
+
+        // Enrol_semco savepoint reached.
+        upgrade_plugin_savepoint(true, 2025100604, 'enrol', 'semco');
+    }
+
     return true;
 }
