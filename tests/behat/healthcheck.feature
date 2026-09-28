@@ -378,6 +378,7 @@ Feature: SEMCO health check
       | OK      | Course recompletion: Notification       |
       | Warning | Course recompletion: Activity reset     |
       | Warning | Course recompletion: Self-service reset |
+      | Warning | Course recompletion: Settings access    |
 
   Scenario: A recommendation which is not followed raises an alert on the plugin settings page until it is muted
     Given all SEMCO health checks which need attention are muted

@@ -629,16 +629,31 @@ abstract class healthcheck {
      * context. A permission override can grant the very same capability again without showing up there, thus the items
      * use this function to look into the courses which SEMCO actually uses.
      *
+     * @param string $capability The capability to look for.
+     * @param int $roleid The id of the role to look for.
+     * @return int[] The ids of the affected courses.
+     */
+    protected function get_semco_courses_with_capability(string $capability, int $roleid): array {
+        $roles = $this->get_roles_with_capability_in_semco_courses($capability);
+        return array_key_exists($roleid, $roles) ? $roles[$roleid] : [];
+    }
+
+    /**
+     * Get the roles which effectively hold a capability in the courses which hold SEMCO enrolments.
+     *
+     * Health check items which want to know whether any role holds a capability read the role definitions in the system
+     * context. A permission override can grant the very same capability again without showing up there, thus the items
+     * use this function to look into the courses which SEMCO actually uses.
+     *
      * The permission is not resolved by this function itself, it is left to the Moodle core function
      * get_roles_with_cap_in_context(). That way, the override of a course, the override of the category above it and
      * the role definition itself are weighted exactly like Moodle weights them when it evaluates the capability at
      * runtime, including the special role of a 'Prohibit' permission.
      *
      * @param string $capability The capability to look for.
-     * @param int $roleid The id of the role to look for.
-     * @return int[] The ids of the affected courses.
+     * @return int[][] The ids of the affected courses, keyed by the id of the role which holds the capability there.
      */
-    protected function get_semco_courses_with_capability(string $capability, int $roleid): array {
+    protected function get_roles_with_capability_in_semco_courses(string $capability): array {
         global $DB;
 
         // Get the course contexts of the courses which hold SEMCO enrolments. The context path is all that
@@ -653,17 +668,19 @@ abstract class healthcheck {
         ];
         $contexts = $DB->get_records_sql($sql, $params);
 
-        // Pick the courses in which the role holds the capability in the end.
-        $courseids = [];
+        // Pick the roles which hold the capability in each course in the end.
+        $roles = [];
         foreach ($contexts as $context) {
             [$needed, $forbidden] = get_roles_with_cap_in_context($context, $capability);
-            if (isset($needed[$roleid]) && !isset($forbidden[$roleid])) {
-                $courseids[] = (int) $context->instanceid;
+            foreach (array_keys($needed) as $roleid) {
+                if (!isset($forbidden[$roleid])) {
+                    $roles[(int) $roleid][] = (int) $context->instanceid;
+                }
             }
         }
 
-        // Return the ids of the affected courses.
-        return $courseids;
+        // Return the ids of the affected courses per role.
+        return $roles;
     }
 
     /**
