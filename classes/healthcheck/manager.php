@@ -531,6 +531,7 @@ class manager {
             check\recompletionnotify::class,
             check\recompletionactivities::class,
             check\recompletionresetmycompletion::class,
+            check\recompletionmanage::class,
         ];
     }
 

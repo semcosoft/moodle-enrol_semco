@@ -63,6 +63,7 @@ use enrol_semco\healthcheck\manager;
  * @covers \enrol_semco\healthcheck\check\recompletionnotify
  * @covers \enrol_semco\healthcheck\check\recompletionondemand
  * @covers \enrol_semco\healthcheck\check\recompletionresetmycompletion
+ * @covers \enrol_semco\healthcheck\check\recompletionmanage
  * @covers \enrol_semco\healthcheck\check\restprotocol
  * @covers \enrol_semco\healthcheck\check\roleassignallowed
  * @covers \enrol_semco\healthcheck\check\rolecapabilities
@@ -2736,6 +2737,7 @@ final class healthcheck_test extends \advanced_testcase {
                 \enrol_semco\healthcheck\check\recompletionnotify::class,
                 \enrol_semco\healthcheck\check\recompletionactivities::class,
                 \enrol_semco\healthcheck\check\recompletionresetmycompletion::class,
+                \enrol_semco\healthcheck\check\recompletionmanage::class,
             ] as $classname
         ) {
             $check = $this->get_check($classname);
@@ -2772,6 +2774,7 @@ final class healthcheck_test extends \advanced_testcase {
                 \enrol_semco\healthcheck\check\recompletionnotify::class,
                 \enrol_semco\healthcheck\check\recompletionactivities::class,
                 \enrol_semco\healthcheck\check\recompletionresetmycompletion::class,
+                \enrol_semco\healthcheck\check\recompletionmanage::class,
             ] as $classname
         ) {
             $this->assertEquals(healthcheck::NA, $this->get_check($classname)->get_status());
@@ -3143,6 +3146,94 @@ final class healthcheck_test extends \advanced_testcase {
         // If there is not any enrolment role configured, this check cannot be assessed.
         set_config('role', '', 'enrol_semco');
         $this->assertEquals(healthcheck::NA, $this->get_check($classname)->get_status());
+    }
+
+    /**
+     * Test the health check item for the access to the course recompletion settings.
+     *
+     * This test needs local_recompletion to be installed. The behaviour without that plugin is covered by
+     * test_recompletion_items_without_local_recompletion().
+     */
+    public function test_recompletionmanage(): void {
+        global $DB;
+
+        // Skip this test if local_recompletion is not installed as the item cannot be assessed then.
+        if (enrol_semco_check_local_recompletion() != true) {
+            $this->markTestSkipped('local_recompletion is not installed, the item cannot be assessed.');
+        }
+
+        $classname = \enrol_semco\healthcheck\check\recompletionmanage::class;
+        $capability = 'local/recompletion:manage';
+        $teacherroleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher'], MUST_EXIST);
+        $managerroleid = $DB->get_field('role', 'id', ['shortname' => 'manager'], MUST_EXIST);
+        $studentroleid = $DB->get_field('role', 'id', ['shortname' => 'student'], MUST_EXIST);
+
+        // A stock local_recompletion grants this capability to the teacher and the manager roles. The teacher role
+        // is what makes the item report a warning.
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(2, $check->get_findings());
+
+        // The automatic fix removes the capability from all role definitions. It is not entirely harmless, as the roles
+        // are not owned by this plugin and are most likely used in other courses as well.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertTrue($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // A role with the teacher archetype which holds the capability is reported as a warning.
+        assign_capability($capability, CAP_ALLOW, $teacherroleid, $this->systemcontext->id, true);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // Any other role which holds the capability is reported as a notice only.
+        assign_capability($capability, CAP_ALLOW, $managerroleid, $this->systemcontext->id, true);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::NOTICE, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // This also applies to a custom role without an archetype.
+        $customroleid = create_role('Custom role', 'customrole', '', '');
+        assign_capability($capability, CAP_ALLOW, $customroleid, $this->systemcontext->id, true);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::NOTICE, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('Custom role', $check->get_findings()[0]);
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // After preventing the capability, everything is fine as well.
+        assign_capability($capability, CAP_PREVENT, $teacherroleid, $this->systemcontext->id, true);
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // A permission override in a course which holds a SEMCO enrolment is reported as well, even though the role
+        // definition itself does not grant the capability. The severity follows the archetype here as well, and such an
+        // override is not removed automatically.
+        $course = $this->getDataGenerator()->create_course();
+        enrol_get_plugin('semco')->add_instance($course);
+        assign_capability($capability, CAP_ALLOW, $studentroleid, \context_course::instance($course->id)->id, true);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::NOTICE, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
+        $this->assertFalse($check->supports_autofix());
+        assign_capability($capability, CAP_ALLOW, $teacherroleid, \context_course::instance($course->id)->id, true);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(2, $check->get_findings());
+
+        // A course without SEMCO enrolments is not looked at.
+        $othercourse = $this->getDataGenerator()->create_course();
+        unassign_capability($capability, $studentroleid, \context_course::instance($course->id)->id);
+        unassign_capability($capability, $teacherroleid, \context_course::instance($course->id)->id);
+        assign_capability($capability, CAP_ALLOW, $teacherroleid, \context_course::instance($othercourse->id)->id, true);
+        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
     }
 
     /**
