@@ -416,7 +416,8 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::OK, $check->get_status());
 
         // As soon as one finding cannot be fixed automatically, the item as a whole cannot be fixed either. The
-        // missing creator of the SEMCO webservice token can be fixed, a second token cannot.
+        // missing creator of the SEMCO webservice token can be fixed, a second token cannot. The second token is newer
+        // than the installer's token, so that the installer's token remains the one which is assessed.
         $tokenclassname = \enrol_semco\healthcheck\check\usertoken::class;
         $token = $DB->get_record('external_tokens', ['userid' => $this->semcouser->id], '*', MUST_EXIST);
         $DB->set_field('external_tokens', 'creatorid', 0, ['id' => $token->id]);
@@ -425,7 +426,7 @@ final class healthcheck_test extends \advanced_testcase {
         unset($secondtoken->id);
         $secondtoken->token = md5('semcohealthchecktesttoken');
         $secondtoken->privatetoken = null;
-        $secondtoken->timecreated = $token->timecreated - 1;
+        $secondtoken->timecreated = $token->timecreated + 1;
         $DB->insert_record('external_tokens', $secondtoken);
         $tokencheck = $this->get_check($tokenclassname);
         $this->assertEquals(
@@ -1673,6 +1674,26 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::ERROR, $this->get_check($classname)->get_status());
         $DB->set_field('external_tokens', 'validuntil', 0, ['id' => $token->id]);
 
+        // Add a newer token which has expired. The oldest token is the one which SEMCO most probably uses, thus only
+        // the fact that there are two tokens is reported and the expiry of the newer token is not. The finding must
+        // tell the admin which token is assessed.
+        $newertoken = clone $token;
+        unset($newertoken->id);
+        $newertoken->token = md5('semcohealthchecktestnewertoken');
+        $newertoken->privatetoken = null;
+        $newertoken->validuntil = time() - DAYSECS;
+        $newertoken->timecreated = $token->timecreated + DAYSECS;
+        $newertokenid = $DB->insert_record('external_tokens', $newertoken);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::NOTICE, $check->get_status());
+        $this->assertEquals([$classname::FINDING_MULTIPLE], $check->get_finding_ids());
+        $this->assertStringContainsString('The oldest token is assessed here', $check->get_findings()[0]);
+        $this->assertFalse($check->supports_autofix());
+
+        // The plugin settings page shows the oldest token as well.
+        $this->assertEquals($token->token, enrol_semco_get_webservice_token());
+        $DB->delete_records('external_tokens', ['id' => $newertokenid]);
+
         // Remove the token completely.
         $DB->delete_records('external_tokens', ['id' => $token->id]);
         $check = $this->get_check($classname);
@@ -1764,7 +1785,8 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertStringNotContainsString('<b>', $check->get_findings()[0]);
 
         // The restriction of the service authorisation is none of this item's business, it is covered by an item of its
-        // own. Neither is the restriction of another token which SEMCO does not use.
+        // own. Neither is the restriction of a newer token, as the oldest token is the one which SEMCO most probably
+        // uses.
         $DB->set_field('external_tokens', 'iprestriction', null, ['id' => $token->id]);
         $DB->set_field('external_services_users', 'iprestriction', '192.0.2.10', ['id' => $authorisation->id]);
         $othertoken = clone $token;
@@ -1772,7 +1794,7 @@ final class healthcheck_test extends \advanced_testcase {
         $othertoken->token = md5('semcohealthchecktestothertoken');
         $othertoken->privatetoken = null;
         $othertoken->iprestriction = '198.51.100.1';
-        $othertoken->timecreated = $token->timecreated - DAYSECS;
+        $othertoken->timecreated = $token->timecreated + DAYSECS;
         $othertokenid = $DB->insert_record('external_tokens', $othertoken);
         $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
         $DB->set_field('external_services_users', 'iprestriction', null, ['id' => $authorisation->id]);

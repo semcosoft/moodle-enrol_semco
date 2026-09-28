@@ -88,3 +88,30 @@ Feature: SEMCO plugin machine room
     When I navigate to "Server > Web services > Manage tokens" in site administration
     Then I should see "192.168.1.0/24" in the "SEMCO Webservice" "table_row"
     And I should see "##2099-12-31 23:59:59##%d %B %Y, %I:%M %p##" in the "SEMCO Webservice" "table_row"
+
+  Scenario: The CLI script refuses to recreate the webservice token when more than one webservice token exists
+    # To start with, there are two tokens: The one which was created during the installation and a newer one.
+    Given I remember the SEMCO webservice token
+    And a second SEMCO webservice token exists
+    # The CLI script cannot tell which of the tokens SEMCO uses, thus it refuses to work and asks the admin to clean up.
+    When I run the SEMCO webservice token CLI script and it fails
+    Then the SEMCO CLI script output should contain "There are 2 webservice tokens for the SEMCO webservice user"
+    And the SEMCO CLI script output should contain "Please delete all but one token"
+    # Nothing has been changed, the oldest token is still there and is still shown on the settings page.
+    And the SEMCO webservice token has not changed
+    When I am on the "enrol_semco > Settings" page logged in as "admin"
+    Then I should see the remembered SEMCO webservice token in the "Connection information" settings section
+
+  Scenario: The CLI script creates a webservice token when there is none
+    # To start with, the webservice token which was created during the installation is gone.
+    Given the SEMCO webservice token is deleted
+    # The CLI script does not fail on the missing token, it just tells that there was nothing to delete.
+    When I run the SEMCO webservice token CLI script
+    Then the SEMCO CLI script output should contain "Notice: There was no old webservice token to delete."
+    And the SEMCO CLI script output should contain "Success: New webservice token has been created."
+    # The new token is shown on the settings page.
+    When I am on the "enrol_semco > Settings" page logged in as "admin"
+    Then I should see the SEMCO webservice token in the "Connection information" settings section
+    # And it is listed on the manage tokens page without any expiry date.
+    When I navigate to "Server > Web services > Manage tokens" in site administration
+    Then I should see "This token has no expiry date." in the "SEMCO Webservice" "table_row"
