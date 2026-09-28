@@ -109,13 +109,13 @@ class usertokeniprestriction extends healthcheck {
             return healthcheck::NA;
         }
 
-        // Get the most recently created token of the SEMCO webservice user for the SEMCO external service. This is the
-        // token which the 'SEMCO webservice token' item assesses as well, and it is that item which reports if there
-        // is more than one token.
+        // Get the oldest token of the SEMCO webservice user for the SEMCO external service. This is the token which
+        // the 'SEMCO webservice token' item assesses as well - it is the token which SEMCO most probably uses - and it
+        // is that item which reports if there is more than one token.
         $tokens = $DB->get_records(
             'external_tokens',
             ['externalserviceid' => $service->id, 'userid' => $user->id],
-            'timecreated DESC, id DESC',
+            'timecreated ASC, id ASC',
             '*',
             0,
             1

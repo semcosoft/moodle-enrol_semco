@@ -169,6 +169,35 @@ if ($options['ip'] !== null) {
     cli_writeln('IP restriction: ' . $iprestriction);
 }
 
+// Get the SEMCO webservice user.
+global $DB;
+$semcouser = $DB->get_record('user', ['username' => ENROL_SEMCO_ROLEANDUSERNAME]);
+if (!$semcouser) {
+    cli_error('Error: SEMCO webservice user not found.');
+}
+
+// Get the ID of the SEMCO webservice service.
+$semcoserviceid = $DB->get_field('external_services', 'id', ['shortname' => ENROL_SEMCO_SERVICENAME]);
+if (!$semcoserviceid) {
+    cli_error('Error: SEMCO webservice service not found.');
+}
+
+// Get the tokens of the SEMCO webservice user for the SEMCO webservice service, oldest first.
+$tokens = $DB->get_records(
+    'external_tokens',
+    ['externalserviceid' => $semcoserviceid, 'userid' => $semcouser->id],
+    'timecreated ASC, id ASC'
+);
+
+// If there is more than one token, this script cannot tell which one SEMCO uses. Deleting all of them would be a bold
+// move and deleting just one of them would leave the admin with a token which might still be in use in SEMCO. Thus,
+// the script refuses to work and asks the admin to clean up first.
+if (count($tokens) > 1) {
+    cli_error('Error: There are ' . count($tokens) . ' webservice tokens for the SEMCO webservice user and the SEMCO '
+            . 'webservice service, but this script can only recreate a single token. Please delete all but one token on '
+            . $CFG->wwwroot . '/admin/webservice/tokens.php first and run this script again.');
+}
+
 // Show warning about token recreation and required updates in SEMCO systems.
 cli_writeln('');
 cli_writeln('WARNING: This will recreate the webservice token for the SEMCO webservice user.');
@@ -191,34 +220,19 @@ if (!$options['yes']) {
 cli_writeln('');
 cli_heading('Processing');
 
-// Get the SEMCO webservice user.
-global $DB;
-$semcouser = $DB->get_record('user', ['username' => ENROL_SEMCO_ROLEANDUSERNAME]);
-if (!$semcouser) {
-    cli_error('Error: SEMCO webservice user not found.');
+// Delete the old token if there is one. A missing token is not an error, the script simply creates a new one.
+if (count($tokens) == 1) {
+    $webservicemanager = new webservice();
+    $webservicemanager->delete_user_ws_token(reset($tokens)->id);
+    cli_writeln('Success: Old webservice token has been deleted.');
+} else {
+    cli_writeln('Notice: There was no old webservice token to delete.');
 }
-
-// Get the ID of the SEMCO webservice service.
-$semcoserviceid = $DB->get_field('external_services', 'id', ['shortname' => ENROL_SEMCO_SERVICENAME]);
-if (!$semcoserviceid) {
-    cli_error('Error: SEMCO webservice service not found.');
-}
-
-// Delete the old token.
-$webservicemanager = new webservice();
-$webservicemanager->delete_user_ws_token(
-    $DB->get_field(
-        'external_tokens',
-        'id',
-        ['externalserviceid' => $semcoserviceid, 'userid' => $semcouser->id]
-    )
-);
-cli_writeln('Success: Old webservice token has been deleted.');
 
 // Generate a new webservice token for the user.
 $systemcontext = context_system::instance();
 $serviceobject = \core_external\util::get_service_by_id($semcoserviceid);
-\core_external\util::generate_token(
+$newtoken = \core_external\util::generate_token(
     EXTERNAL_TOKEN_PERMANENT,
     $serviceobject,
     $semcouser->id,
@@ -230,12 +244,7 @@ $serviceobject = \core_external\util::get_service_by_id($semcoserviceid);
 // Unfortunately, with the previous function, the token was created with a creator ID of 0 which will result in the
 // fact that the token is not shown on /admin/webservice/tokens.php.
 // To avoid this problem, we set the creatorid of the token to the SEMCO webservice user id now.
-$generatedtoken = $DB->get_record(
-    'external_tokens',
-    ['externalserviceid' => $semcoserviceid, 'userid' => $semcouser->id],
-    '*',
-    MUST_EXIST
-);
+$generatedtoken = $DB->get_record('external_tokens', ['token' => $newtoken], '*', MUST_EXIST);
 $generatedtoken->creatorid = $semcouser->id;
 $DB->update_record('external_tokens', $generatedtoken);
 cli_writeln('Success: New webservice token has been created.');
@@ -243,6 +252,3 @@ cli_writeln('Success: New webservice token has been created.');
 // Print the new token.
 cli_writeln('');
 cli_writeln('New token: ' . $generatedtoken->token);
-cli_writeln('');
-
-exit(0);
