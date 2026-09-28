@@ -58,6 +58,7 @@ use enrol_semco\healthcheck\healthcheck as healthcheckitem;
  * @covers \enrol_semco\healthcheck\check\recompletionnotify
  * @covers \enrol_semco\healthcheck\check\recompletionondemand
  * @covers \enrol_semco\healthcheck\check\recompletionresetmycompletion
+ * @covers \enrol_semco\healthcheck\check\recompletionmanage
  * @covers \enrol_semco\healthcheck\check\restprotocol
  * @covers \enrol_semco\healthcheck\check\roleassignallowed
  * @covers \enrol_semco\healthcheck\check\rolecapabilities
