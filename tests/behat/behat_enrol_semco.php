@@ -484,6 +484,105 @@ class behat_enrol_semco extends behat_base {
     }
 
     /**
+     * Check that the SEMCO webservice token in the database is still the remembered one.
+     *
+     * @Then the SEMCO webservice token has not changed
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_semco_webservice_token_has_not_changed(): void {
+        global $CFG;
+
+        // Require plugin library to get the plugin's helper functions.
+        require_once($CFG->dirroot . '/enrol/semco/locallib.php');
+
+        // Throw an exception if no token was remembered before (which would indicate a broken scenario).
+        if ($this->rememberedwebservicetoken === null) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'No SEMCO webservice token was remembered before, please add the corresponding step to the scenario.',
+                $this->getSession()
+            );
+        }
+
+        // Compare the token from the database against the remembered one.
+        if (enrol_semco_get_webservice_token() !== $this->rememberedwebservicetoken) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'The SEMCO webservice token differs from the remembered one.',
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check that the remembered SEMCO webservice token is shown within the given section of the settings page.
+     *
+     * In contrast to the "I should see the SEMCO webservice token" step, this step does not look the token up in the
+     * database. This matters if there is more than one token: The plugin looks the token up in the database on its own,
+     * so comparing the page against the very same lookup would not prove which token the page shows.
+     *
+     * @Then I should see the remembered SEMCO webservice token in the :heading settings section
+     * @param string $heading The visible text of the section heading.
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_should_see_the_remembered_semco_webservice_token_in_the_settings_section(string $heading): void {
+        // Throw an exception if no token was remembered before (which would indicate a broken scenario).
+        if ($this->rememberedwebservicetoken === null) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'No SEMCO webservice token was remembered before, please add the corresponding step to the scenario.',
+                $this->getSession()
+            );
+        }
+
+        // Compare the shown value against the remembered token.
+        $this->i_should_see_element_in_the_settings_section($this->rememberedwebservicetoken, 'text', $heading);
+    }
+
+    /**
+     * Create a second SEMCO webservice token which is newer than the existing one.
+     *
+     * This brings the plugin installation into the state which the health check reports as multiple tokens. The
+     * existing token remains the oldest token and thus the token which the plugin treats as the one which SEMCO uses.
+     *
+     * @Given a second SEMCO webservice token exists
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function a_second_semco_webservice_token_exists(): void {
+        global $CFG, $DB;
+
+        // Require plugin library to get the plugin's constants.
+        require_once($CFG->dirroot . '/enrol/semco/locallib.php');
+
+        // Get the SEMCO webservice user and the SEMCO external service.
+        $userid = $DB->get_field('user', 'id', ['username' => ENROL_SEMCO_ROLEANDUSERNAME, 'deleted' => 0], MUST_EXIST);
+        $serviceid = $DB->get_field('external_services', 'id', ['shortname' => ENROL_SEMCO_SERVICENAME], MUST_EXIST);
+
+        // Get the newest existing token of the user for the service.
+        $tokens = $DB->get_records(
+            'external_tokens',
+            ['userid' => $userid, 'externalserviceid' => $serviceid],
+            'timecreated DESC, id DESC',
+            '*',
+            0,
+            1
+        );
+
+        // Throw an exception if there is no token in the database (which would indicate a broken plugin installation).
+        if (count($tokens) < 1) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'There is no SEMCO webservice token in the database which could be duplicated.',
+                $this->getSession()
+            );
+        }
+
+        // Create a copy of the token which is clearly newer.
+        $secondtoken = clone reset($tokens);
+        unset($secondtoken->id);
+        $secondtoken->token = md5('semcobehatsecondtoken' . $secondtoken->timecreated);
+        $secondtoken->privatetoken = null;
+        $secondtoken->timecreated = $secondtoken->timecreated + DAYSECS;
+        $DB->insert_record('external_tokens', $secondtoken);
+    }
+
+    /**
      * Delete the SEMCO webservice token from the database.
      *
      * This brings the plugin installation into the state which the health check reports as a missing token.
@@ -505,7 +604,7 @@ class behat_enrol_semco extends behat_base {
     }
 
     /**
-     * Run the plugin's CLI script which recreates the SEMCO webservice token.
+     * Run the plugin's CLI script which recreates the SEMCO webservice token and remember its output.
      *
      * The CLI script is run as a real subprocess as this is the only way to cover the script as such (its logic is not
      * wrapped in a function which could be called directly). The BEHAT_CLI environment variable tells the Moodle bootstrap
@@ -514,11 +613,10 @@ class behat_enrol_semco extends behat_base {
      * database reset after the scenario works as usual.
      * The --yes option is always passed as the script would wait for an interactive confirmation otherwise.
      *
-     * @When /^I run the SEMCO webservice token CLI script(?: with the options "(?P<options_string>[^"]*)")?$/
      * @param string $options Additional options to pass to the CLI script.
-     * @throws \Behat\Mink\Exception\ExpectationException
+     * @return int The exit code of the CLI script.
      */
-    public function i_run_the_semco_webservice_token_cli_script(string $options = ''): void {
+    protected function run_semco_webservice_token_cli_script(string $options = ''): int {
         global $CFG;
 
         // Build the command.
@@ -534,10 +632,45 @@ class behat_enrol_semco extends behat_base {
         // Remember the output for later assertions.
         $this->cliscriptoutput = implode("\n", $output);
 
+        return $exitcode;
+    }
+
+    /**
+     * Run the plugin's CLI script which recreates the SEMCO webservice token and expect it to succeed.
+     *
+     * @When /^I run the SEMCO webservice token CLI script(?: with the options "(?P<options_string>[^"]*)")?$/
+     * @param string $options Additional options to pass to the CLI script.
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_run_the_semco_webservice_token_cli_script(string $options = ''): void {
+        // Run the CLI script.
+        $exitcode = $this->run_semco_webservice_token_cli_script($options);
+
         // Throw an exception if the CLI script did not finish successfully.
         if ($exitcode !== 0) {
             throw new \Behat\Mink\Exception\ExpectationException(
                 'The SEMCO webservice token CLI script failed with exit code ' . $exitcode . ".\n\n" .
+                        $this->cliscriptoutput,
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Run the plugin's CLI script which recreates the SEMCO webservice token and expect it to refuse the job.
+     *
+     * @When /^I run the SEMCO webservice token CLI script(?: with the options "(?P<options_string>[^"]*)")? and it fails$/
+     * @param string $options Additional options to pass to the CLI script.
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_run_the_semco_webservice_token_cli_script_and_it_fails(string $options = ''): void {
+        // Run the CLI script.
+        $exitcode = $this->run_semco_webservice_token_cli_script($options);
+
+        // Throw an exception if the CLI script finished successfully nonetheless.
+        if ($exitcode === 0) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "The SEMCO webservice token CLI script was expected to fail but finished successfully.\n\n" .
                         $this->cliscriptoutput,
                 $this->getSession()
             );
