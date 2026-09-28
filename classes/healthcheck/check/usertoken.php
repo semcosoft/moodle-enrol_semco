@@ -120,11 +120,11 @@ class usertoken extends healthcheck {
             return healthcheck::NA;
         }
 
-        // Get the tokens of the SEMCO webservice user for the SEMCO external service, newest first.
+        // Get the tokens of the SEMCO webservice user for the SEMCO external service, oldest first.
         $tokens = $DB->get_records(
             'external_tokens',
             ['externalserviceid' => $service->id, 'userid' => $user->id],
-            'timecreated DESC, id DESC'
+            'timecreated ASC, id ASC'
         );
 
         // If there is no token at all, SEMCO cannot connect to Moodle.
@@ -136,8 +136,10 @@ class usertoken extends healthcheck {
         // Start with an intact state.
         $status = healthcheck::OK;
 
-        // If there is more than one token, it is unclear which one SEMCO uses.
-        // We report this fact and assess the most recently created token below.
+        // If there is more than one token, this plugin cannot tell for sure which one SEMCO uses. We report this fact
+        // and assess the oldest token below: This is the token which has most probably been entered in SEMCO initially
+        // and which SEMCO keeps using even if someone has created another token in Moodle by accident. The plugin
+        // settings page shows the oldest token for the very same reason.
         if (count($tokens) > 1) {
             $this->add_finding(
                 self::FINDING_MULTIPLE,
@@ -146,7 +148,7 @@ class usertoken extends healthcheck {
             $status = $this->escalate($status, healthcheck::NOTICE);
         }
 
-        // Get the most recently created token.
+        // Get the oldest token.
         $token = reset($tokens);
 
         // If the token is not a permanent token, it might vanish unexpectedly.

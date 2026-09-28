@@ -375,19 +375,30 @@ function enrol_semco_callbackimpl_before_standard_top_of_body_html(&$hook = null
  * Helper function to get the webservice token which the plugin uses for the SEMCO webservice.
  * This token is needed on the plugin settings page and in the plugin's Behat tests.
  *
+ * If the SEMCO webservice user has more than one token for the SEMCO external service, the oldest token is returned.
+ * This is the token which has most probably been entered in SEMCO initially and which SEMCO keeps using even if
+ * someone has created another token in Moodle by accident. The health check reports the fact that there is more than
+ * one token and assesses the oldest token for the very same reason.
+ *
  * @return string|false The webservice token or false if no token was found.
  */
 function enrol_semco_get_webservice_token() {
     global $DB;
 
-    $sql = 'SELECT et.token
+    $sql = 'SELECT et.id, et.token
             FROM {external_tokens} et
             JOIN {external_services} es ON et.externalserviceid = es.id
             JOIN {user} u ON et.userid = u.id
-            WHERE u.username = :username AND es.shortname = :serviceshortname';
+            WHERE u.username = :username AND es.shortname = :serviceshortname
+            ORDER BY et.timecreated ASC, et.id ASC';
     $sqlparams = ['serviceshortname' => ENROL_SEMCO_SERVICENAME, 'username' => ENROL_SEMCO_ROLEANDUSERNAME];
+    $tokens = $DB->get_records_sql($sql, $sqlparams, 0, 1);
 
-    return $DB->get_field_sql($sql, $sqlparams);
+    if (count($tokens) < 1) {
+        return false;
+    }
+
+    return reset($tokens)->token;
 }
 
 /**

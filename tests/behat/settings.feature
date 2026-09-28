@@ -29,6 +29,16 @@ Feature: SEMCO plugin settings page
     Then I should see "Connection information"
     And I should see "No existing webservice token was found for the SEMCO webservice user." "text" in the "Connection information" settings section
 
+  Scenario: The settings page shows the oldest webservice token in the connection information section when more than one webservice token exists
+    # If there is more than one token, the oldest one is the token which SEMCO most probably uses, thus this is the token
+    # which the settings page shows. The token which was created during the installation is the oldest one, the second
+    # token is newer.
+    Given I remember the SEMCO webservice token
+    And a second SEMCO webservice token exists
+    When I am on the "enrol_semco > Settings" page logged in as "admin"
+    Then I should see "Connection information"
+    And I should see the remembered SEMCO webservice token in the "Connection information" settings section
+
   # "Enrolment report" section
 
   Scenario: The settings page shows a report button in the enrolment report section

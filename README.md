@@ -97,7 +97,8 @@ There, you find five sections:
 
 ### 1. Connection information
 
-In this section, you will find the Moodle base URL and the webservice token which was automatically created during the plugin installation. Please use this data to configure the Moodle connection in SEMCO.
+In this section, you will find the Moodle base URL and the webservice token which was automatically created during the plugin installation. Please use this data to configure the Moodle connection in SEMCO.\
+If the 'SEMCO webservice' user has more than one token for the SEMCO external service, the oldest token is shown here as this is the token which has most probably been entered in SEMCO initially. The health check reports the fact that there is more than one token.
 
 ### 2. Health check
 
@@ -328,6 +329,8 @@ Using this script is recommended in the following cases:
 
 * If you need to change or renew the web service token. This may be particularly necessary if you have cloned your Moodle instance and want to use a different SEMCO webservice token in the clone.
 * If you want to harden the web service token. The token is initially created during plugin installation without restrictions. And the CLI script allows you to set IP or date restrictions on the token without hassle.
+
+The script refuses to work if the 'SEMCO webservice' user has more than one webservice token for the SEMCO external service, as it cannot tell which token SEMCO uses. In this case, please delete all but one token on /admin/webservice/tokens.php first and run the script again.
 
 
 Checks API
