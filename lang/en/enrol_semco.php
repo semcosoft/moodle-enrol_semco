@@ -134,7 +134,7 @@ $string['healthcheckautofixconfirmfinding'] = 'The automatic fix is going to res
 $string['healthcheckautofixconfirmfindings'] = 'The automatic fix is going to resolve these findings:';
 $string['healthcheckautofixconfirmrecommendation'] = 'Please note: This finding is not a fault of the SEMCO plugin or of its installation. The automatic fix changes a setting outside of the SEMCO plugin to implement a recommendation for a SEMCO-Moodle integration which is described in the README of the plugin.';
 $string['healthcheckautofixconfirmrecompletion'] = 'Please note: This finding is not a fault of the SEMCO plugin or of its installation. The plugin installer does not configure the companion plugin local_recompletion for you, this has to be done after the installation. The automatic fix changes a setting which belongs to local_recompletion to implement a recommendation for a SEMCO-Moodle integration which is described in the README of the plugin.';
-$string['healthcheckautofixconfirmrisky'] = '<strong>Warning:</strong> This automatic fix is not entirely harmless. It changes something which may have been set on purpose or which may affect more than the SEMCO integration. If you are in doubt, please do not proceed. You can also fix the finding yourself with the cog icon of the check or contact the SEMCO support who will assist you.';
+$string['healthcheckautofixconfirmrisky'] = '<strong>Warning:</strong> This automatic fix is not entirely harmless. It changes something which may have been set on purpose or which may affect more than the SEMCO integration. If you are in doubt, please do not proceed. You can also fix the finding yourself with the cog icon of the check or contact the <a href="https://support.semcosoft.com" target="_blank">SEMCO support</a> who will assist you.';
 $string['healthcheckautofixconfirmquestion'] = 'Do you really want to fix this check automatically?';
 $string['healthcheckautofixsuccess'] = 'The check has been fixed automatically.';
 $string['healthcheckautofixfollowup'] = 'However, the automatic fix could not do everything for you:';
@@ -144,7 +144,7 @@ $string['healthcheckfinding'] = 'Finding';
 $string['healthcheckfindings'] = 'Findings';
 $string['healthcheckpossiblesolutions'] = 'Possible solutions';
 $string['healthchecksupport'] = 'Contact SEMCO support';
-$string['healthchecksupport_desc'] = '<p>Unfortunately, this check cannot be fixed automatically.</p><p>If you do not use the SEMCO-Moodle connection in production yet, you could try to re-install the plugin and to re-configure everything from scratch.</p><p>You can also try to fix the check by looking at the affected settings yourself by using the check\'s cog icon.</p><p>Lastly, you can also contact the SEMCO support who will assist you to fix the finding.</p>';
+$string['healthchecksupport_desc'] = '<p>Unfortunately, this check cannot be fixed automatically.</p><p>If you do not use the SEMCO-Moodle connection in production yet, you could try to re-install the plugin and to re-configure everything from scratch.</p><p>You can also try to fix the check by looking at the affected settings yourself by using the check\'s cog icon.</p><p>Lastly, you can also contact the <a href="https://support.semcosoft.com" target="_blank">SEMCO support</a> who will assist you to fix the finding.</p>';
 $string['healthcheckmute'] = 'Mute check';
 $string['healthcheckunmute'] = 'Unmute check';
 $string['healthcheckmutesuccess'] = 'The check has been muted.<br />You will not be bothered by it from now on, but you can always unmute it again.';

@@ -499,6 +499,7 @@ Feature: SEMCO health check
     When I click on "Fix the check automatically" "link" in the "Moodle messaging system" "table_row"
     Then I should see "This automatic fix is not entirely harmless" in the "Fix the check automatically" "dialogue"
     And I should see "contact the SEMCO support" in the "Fix the check automatically" "dialogue"
+    And "//a[@href='https://support.semcosoft.com']" "xpath_element" should exist in the "Fix the check automatically" "dialogue"
     And I should see "This finding is not a fault of the SEMCO plugin" in the "Fix the check automatically" "dialogue"
     And ".alert-danger" "css_element" should exist in the "Fix the check automatically" "dialogue"
     And I click on "Fix automatically" "button" in the "Fix the check automatically" "dialogue"
@@ -544,6 +545,7 @@ Feature: SEMCO health check
     And I should see "you could try to re-install the plugin" in the "Contact SEMCO support" "dialogue"
     And I should see "by using the check's cog icon" in the "Contact SEMCO support" "dialogue"
     And I should see "contact the SEMCO support who will assist you" in the "Contact SEMCO support" "dialogue"
+    And "//a[@href='https://support.semcosoft.com']" "xpath_element" should exist in the "Contact SEMCO support" "dialogue"
     # The modal does nothing but to explain, thus the check is still in the same state afterwards.
     And I click on "OK" "button" in the "Contact SEMCO support" "dialogue"
     And the following should exist in the "healthchecks-plugin" table:
