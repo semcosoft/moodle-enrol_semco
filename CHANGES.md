@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-06 - Improvement: The 'Course recompletion: Activity reset' health check item and the matching README recommendation no longer claim that a course completion reset does not delete _anything_ if no activity type is reset.
 * 2026-09-30 - Improvement: The health check items of the 'Recompletion plugin' category only assess the courses which have completion tracking enabled in their course settings, as there is no course completion which SEMCO could reset in the other courses.
 * 2026-09-30 - Improvement: Add three additional recommendations for local_recompletion to the README along with matching health check items.
 * 2026-09-30 - Improvement: The health check refers to the SEMCO support ticketing system, if needed.
