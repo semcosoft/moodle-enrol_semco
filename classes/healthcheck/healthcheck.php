@@ -416,7 +416,8 @@ abstract class healthcheck {
             return [];
         }
 
-        // Collect the follow-up texts of the findings. The finding ids are sorted already, see get_result().
+        // Collect the follow-up texts of the findings. The finding ids are sorted already, see get_result(). An item
+        // may hand the same text to several of its findings, thus the texts are deduplicated.
         $definitions = $this->get_all_finding_definitions();
         $followups = [];
         foreach ($this->get_finding_ids() as $findingid) {
@@ -425,7 +426,7 @@ abstract class healthcheck {
             }
         }
 
-        return $followups;
+        return array_values(array_unique($followups));
     }
 
     /**
