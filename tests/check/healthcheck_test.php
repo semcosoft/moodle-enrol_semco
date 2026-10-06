@@ -57,6 +57,9 @@ use enrol_semco\healthcheck\healthcheck as healthcheckitem;
  * @covers \enrol_semco\healthcheck\check\recompletioninstalled
  * @covers \enrol_semco\healthcheck\check\recompletionnotify
  * @covers \enrol_semco\healthcheck\check\recompletionondemand
+ * @covers \enrol_semco\healthcheck\check\recompletiongrades
+ * @covers \enrol_semco\healthcheck\check\recompletionarchive
+ * @covers \enrol_semco\healthcheck\check\recompletionrestrictenrol
  * @covers \enrol_semco\healthcheck\check\recompletionresetmycompletion
  * @covers \enrol_semco\healthcheck\check\recompletionmanage
  * @covers \enrol_semco\healthcheck\check\restprotocol

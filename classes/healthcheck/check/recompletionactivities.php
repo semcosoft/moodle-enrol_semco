@@ -186,7 +186,7 @@ class recompletionactivities extends healthcheck {
                 'enrol_semco',
                 [
                     'count' => count($weakenedcourses),
-                    'total' => $this->count_semco_courses(),
+                    'total' => $this->count_semco_courses(true),
                     'courses' => $this->name_courses($weakenedcourses),
                 ]
             ));
@@ -238,12 +238,14 @@ class recompletionactivities extends healthcheck {
 
         // Get the relevant course settings of all courses which hold SEMCO enrolments.
         [$insql, $inparams] = $DB->get_in_or_equal($resetsettings, SQL_PARAMS_NAMED, 'name');
+        // Courses which do not have completion tracking enabled in their course settings are out of scope, as there is no
+        // course completion which SEMCO could reset there.
         $sql = 'SELECT c.id AS courseid, rc.name AS settingname, rc.value AS settingvalue
                 FROM {enrol} e
                 JOIN {course} c ON c.id = e.courseid
                 LEFT JOIN {local_recompletion_config} rc ON rc.course = c.id AND rc.name ' . $insql . '
-                WHERE e.enrol = :enrol';
-        $params = array_merge($inparams, ['enrol' => 'semco']);
+                WHERE e.enrol = :enrol AND c.enablecompletion = :enablecompletion';
+        $params = array_merge($inparams, ['enrol' => 'semco', 'enablecompletion' => 1]);
 
         // Pick the courses apart. A course which does not hold a setting at all does not reset the activity type
         // either, thus a missing setting counts just like a setting which is set to do nothing.

@@ -372,13 +372,16 @@ Feature: SEMCO health check
     When I am on the "enrol_semco > healthcheck" page logged in as "admin"
     Then I should see "Recompletion plugin"
     And the following should exist in the "healthchecks-recompletion" table:
-      | Status  | Check                                   |
-      | OK      | Companion plugin local_recompletion     |
-      | Warning | Course recompletion: Type               |
-      | OK      | Course recompletion: Notification       |
-      | Warning | Course recompletion: Activity reset     |
-      | Warning | Course recompletion: Self-service reset |
-      | Warning | Course recompletion: Settings access    |
+      | Status  | Check                                             |
+      | OK      | Companion plugin local_recompletion               |
+      | Warning | Course recompletion: Type                         |
+      | OK      | Course recompletion: Notification                 |
+      | Warning | Course recompletion: Activity reset               |
+      | OK      | Course recompletion: Grade deletion               |
+      | Warning | Course recompletion: Data archiving               |
+      | OK      | Course recompletion: Enrolment method restriction |
+      | Warning | Course recompletion: Self-service reset           |
+      | Warning | Course recompletion: Settings access              |
 
   Scenario: A recommendation which is not followed raises an alert on the plugin settings page until it is muted
     Given all SEMCO health checks which need attention are muted
