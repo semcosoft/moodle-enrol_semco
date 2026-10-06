@@ -3072,13 +3072,28 @@ final class healthcheck_test extends \advanced_testcase {
         }
         $this->assertNotEmpty($settingnames, 'local_recompletion does not offer any site-wide activity type setting.');
 
-        // A stock local_recompletion does not reset any activity type at all, which renders it ineffective.
+        // A stock local_recompletion does not reset any activity type at all, which leaves the users' data within the
+        // activities in place.
         $check = $this->get_check($classname);
         $this->assertEquals(healthcheck::WARNING, $check->get_status());
         $this->assertCount(1, $check->get_findings());
-        $this->assertFalse($check->supports_autofix());
 
-        // As soon as one activity type is reset, the remaining ones are only a notice.
+        // The automatic fix sets every activity type to 'Delete' in the site-wide settings, which is harmless. It
+        // reminds the admin that another reset strategy has to be picked by hand.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $this->assertCount(1, $check->get_autofix_followups());
+        $this->assertStringContainsString('Extra attempt', $check->get_autofix_followups()[0]);
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        foreach ($settingnames as $settingname) {
+            $this->assertEquals(LOCAL_RECOMPLETION_DELETE, (int) get_config('local_recompletion', $settingname));
+        }
+
+        // As soon as one activity type is reset but the remaining ones are not, the remaining ones are only a notice.
+        foreach ($settingnames as $settingname) {
+            set_config($settingname, LOCAL_RECOMPLETION_NOTHING, 'local_recompletion');
+        }
         set_config($settingnames[0], LOCAL_RECOMPLETION_DELETE, 'local_recompletion');
         $check = $this->get_check($classname);
         $this->assertEquals(healthcheck::NOTICE, $check->get_status());
@@ -3089,11 +3104,31 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertStringContainsString((count($settingnames) - 1) . ' activity type(s)', $check->get_findings()[0]);
         $this->assertEquals(count($settingnames) - 1, substr_count($check->get_findings()[0], '<li>'));
 
-        // With every activity type being reset, everything is fine.
+        // The automatic fix sets the remaining activity types to 'Delete' as well, which is harmless.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
         foreach ($settingnames as $settingname) {
-            set_config($settingname, LOCAL_RECOMPLETION_DELETE, 'local_recompletion');
+            $this->assertEquals(LOCAL_RECOMPLETION_DELETE, (int) get_config('local_recompletion', $settingname));
         }
-        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+
+        // An activity type which is set to 'Extra attempt' is reset as well and is left alone by the automatic fix.
+        // The quiz is a core module which offers this reset strategy, thus it is always there.
+        $this->assertContains('quiz', $settingnames);
+        foreach ($settingnames as $settingname) {
+            set_config($settingname, LOCAL_RECOMPLETION_NOTHING, 'local_recompletion');
+        }
+        set_config('quiz', LOCAL_RECOMPLETION_EXTRAATTEMPT, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::NOTICE, $check->get_status());
+        $this->assertStringNotContainsString(get_string('pluginname', 'mod_quiz'), $check->get_findings()[0]);
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertEquals(LOCAL_RECOMPLETION_EXTRAATTEMPT, (int) get_config('local_recompletion', 'quiz'));
+        foreach (array_diff($settingnames, ['quiz']) as $settingname) {
+            $this->assertEquals(LOCAL_RECOMPLETION_DELETE, (int) get_config('local_recompletion', $settingname));
+        }
 
         // A course with SEMCO enrolments which does not hold any recompletion setting does not reset any activity
         // type, which is less than the site-wide settings ask for.
@@ -3112,15 +3147,46 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertCount(1, $check->get_findings());
         $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
 
-        // As soon as the course resets every activity type as well, everything is fine again.
+        // A course which holds a SEMCO enrolment and which resets every activity type which the site resets is fine.
+        $finecourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($finecourse);
         foreach ($settingnames as $settingname) {
             $DB->insert_record('local_recompletion_config', (object) [
-                'course' => $course->id,
+                'course' => $finecourse->id,
                 'name' => $settingname,
                 'value' => LOCAL_RECOMPLETION_DELETE,
             ]);
         }
-        $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 2', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($finecourse->fullname, $check->get_findings()[0]);
+
+        // If a site-wide finding and a course finding are reported at the same time, the reminder about the reset
+        // strategy is given only once.
+        set_config('quiz', LOCAL_RECOMPLETION_NOTHING, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertCount(2, $check->get_findings());
+        $this->assertCount(1, $check->get_autofix_followups());
+        set_config('quiz', LOCAL_RECOMPLETION_EXTRAATTEMPT, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+
+        // The automatic fix sets the activity types which the site resets to 'Delete' in the affected course and
+        // leaves the other courses alone. It is not entirely harmless, as the course has been configured by its
+        // teacher and the next reset deletes the users' data within these activities.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertTrue($check->is_autofix_risky());
+        $this->assertCount(1, $check->get_autofix_followups());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        foreach ($settingnames as $settingname) {
+            $this->assertEquals(LOCAL_RECOMPLETION_DELETE, (int) $DB->get_field('local_recompletion_config', 'value', [
+                'course' => $course->id,
+                'name' => $settingname,
+            ]));
+        }
+        $this->assertFalse($DB->record_exists('local_recompletion_config', ['course' => $nocompletioncourse->id]));
 
         // A course which resets more activity types than the site-wide settings ask for is not reported. Only the
         // site-wide finding about the one activity type which is not reset remains.
