@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Enrolment method "SEMCO" - Health check item
+ * Enrolment method "SEMCO" - Health check: local_recompletion grade deletion
  *
  * @package    enrol_semco
  * @copyright  2026 Alexander Bias <bias@alexanderbias.de>
@@ -28,23 +28,25 @@ use enrol_semco\healthcheck\autofix;
 use enrol_semco\healthcheck\healthcheck;
 
 /**
- * Health check which verifies that local_recompletion does not notify the users about a course completion reset.
+ * Health check which verifies that local_recompletion deletes the grades of a user when SEMCO resets the user's course
+ * completion.
  *
- * SEMCO resets a user's course completion on every SEMCO enrolment into a course, even on the very first one. A
- * notification about such a reset would confuse the user, thus the recompletion notification should be disabled.
+ * A course completion reset which leaves the gradebook grades of the user in place produces an inconsistent course:
+ * The activity attempts are gone, but the gradebook still shows the grades of these attempts.
  *
  * This item assesses the site-wide default of local_recompletion as well as the courses which hold SEMCO enrolments,
- * as the site-wide default only prefills the course settings and does not change the courses which exist already.
+ * as the site-wide default only prefills the course settings and does not change the courses which exist already. Only
+ * courses with completion tracking enabled are assessed, as there is no course completion to reset in the other courses.
  *
  * @package    enrol_semco
  * @copyright  2026 Alexander Bias <bias@alexanderbias.de>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class recompletionnotify extends healthcheck {
-    /** @var string Finding: The site-wide default of the recompletion notification is not disabled. */
+class recompletiongrades extends healthcheck {
+    /** @var string Finding: The site-wide default does not delete the grades of the user. */
     public const FINDING_SITEDEFAULT = 'sitedefault';
 
-    /** @var string Finding: Courses with SEMCO enrolments notify their users about a course completion reset. */
+    /** @var string Finding: Courses with SEMCO enrolments do not delete the grades of the user. */
     public const FINDING_COURSES = 'courses';
 
     /**
@@ -53,7 +55,7 @@ class recompletionnotify extends healthcheck {
      * @return string
      */
     public function get_id(): string {
-        return 'recompletionnotify';
+        return 'recompletiongrades';
     }
 
     /**
@@ -62,7 +64,7 @@ class recompletionnotify extends healthcheck {
      * @return string
      */
     public function get_title(): string {
-        return get_string('healthcheck_recompletionnotify_title', 'enrol_semco');
+        return get_string('healthcheck_recompletiongrades_title', 'enrol_semco');
     }
 
     /**
@@ -71,7 +73,7 @@ class recompletionnotify extends healthcheck {
      * @return string
      */
     public function get_summary(): string {
-        return get_string('healthcheck_recompletionnotify_summary', 'enrol_semco');
+        return get_string('healthcheck_recompletiongrades_summary', 'enrol_semco');
     }
 
     /**
@@ -80,7 +82,7 @@ class recompletionnotify extends healthcheck {
      * @return string
      */
     public function get_description(): string {
-        return get_string('healthcheck_recompletionnotify_description', 'enrol_semco');
+        return get_string('healthcheck_recompletiongrades_description', 'enrol_semco');
     }
 
     /**
@@ -98,7 +100,7 @@ class recompletionnotify extends healthcheck {
      * @return string
      */
     protected function determine_status(): string {
-        global $CFG, $DB;
+        global $DB;
 
         // If local_recompletion is not installed, this check cannot be assessed.
         if (enrol_semco_check_local_recompletion() != true) {
@@ -109,63 +111,53 @@ class recompletionnotify extends healthcheck {
             return healthcheck::NA;
         }
 
-        // The recompletion constants live in the autoloadable local_recompletion_recompletion_form class, but this
-        // class extends moodleform, thus formslib has to be loaded before the class can be used. The local_recompletion
-        // library takes care of that.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
-
         // Start with an intact state.
         $status = healthcheck::OK;
-        $disabled = \local_recompletion_recompletion_form::RECOMPLETION_NOTIFY_DISABLED;
 
         // Check the site-wide default which local_recompletion uses to prefill the course settings.
-        // local_recompletion itself evaluates the setting with !empty(), see its check_recompletion task, thus a value of
-        // 0 is just as disabled as the empty RECOMPLETION_NOTIFY_DISABLED constant and an unset setting.
-        $sitedefault = get_config('local_recompletion', 'recompletionnotify');
-        if (!empty($sitedefault)) {
+        // local_recompletion itself evaluates the setting with a truthiness check, see its check_recompletion task,
+        // thus an unset setting is just as disabled as a value of 0.
+        if (empty(get_config('local_recompletion', 'deletegradedata'))) {
             $this->add_finding(
                 self::FINDING_SITEDEFAULT,
-                get_string('healthcheck_recompletionnotify_findingsitedefault', 'enrol_semco')
+                get_string('healthcheck_recompletiongrades_findingsitedefault', 'enrol_semco')
             );
-            $status = $this->escalate($status, healthcheck::NOTICE);
+            $status = $this->escalate($status, healthcheck::WARNING);
         }
 
         // The site-wide default only prefills the course settings, it does not change the courses which exist
-        // already. Thus, get the courses which hold SEMCO enrolments and which notify their users on their own. The
-        // courses are named, as an admin who fixes them himself has to look into each of them. The ids of the courses
-        // are handed over as context, so that the automatic fix knows which courses to change.
-        // Please note that local_recompletion's course settings page writes a value of 0 for every setting which the
-        // form did not submit, see local/recompletion/recompletion.php, and evaluates the setting with !empty()
-        // afterwards. A stored 0 therefore means 'disabled' as well and must not be reported.
-        // The value column is a text column, thus it has to be compared with sql_compare_text().
+        // already. Thus, get the courses which hold SEMCO enrolments but which do not delete the grades of the user.
         // Courses which do not have completion tracking enabled in their course settings are out of scope, as there is no
         // course completion which SEMCO could reset there.
+        // A course which does not hold the setting at all does not delete the grades either, see
+        // local_recompletion_get_config() in the local_recompletion library, thus a missing setting is reported
+        // as well. The courses are named, as an admin who fixes them himself has to look into each of them. The ids
+        // of the courses are handed over as context, so that the automatic fix knows which courses to change.
+        // The value column is a text column, thus it has to be compared with sql_compare_text().
         $sql = 'SELECT DISTINCT c.id
                 FROM {enrol} e
                 JOIN {course} c ON c.id = e.courseid
-                JOIN {local_recompletion_config} rc ON rc.course = e.courseid AND rc.name = :configname
-                WHERE e.enrol = :enrol AND c.enablecompletion = :enablecompletion AND rc.value IS NOT NULL
-                    AND ' . $DB->sql_compare_text('rc.value') . ' <> ' . $DB->sql_compare_text(':disabled') . '
-                    AND ' . $DB->sql_compare_text('rc.value') . ' <> ' . $DB->sql_compare_text(':zero');
+                LEFT JOIN {local_recompletion_config} rc ON rc.course = e.courseid AND rc.name = :configname
+                WHERE e.enrol = :enrol AND c.enablecompletion = :enablecompletion AND (rc.value IS NULL OR ' .
+                    $DB->sql_compare_text('rc.value') . ' <> ' . $DB->sql_compare_text(':enabled') . ')';
         $params = [
-            'configname' => 'recompletionnotify',
+            'configname' => 'deletegradedata',
             'enrol' => 'semco',
             'enablecompletion' => 1,
-            'disabled' => $disabled,
-            'zero' => '0',
+            'enabled' => '1',
         ];
         $courseids = array_map('intval', $DB->get_fieldset_sql($sql, $params));
         if (count($courseids) > 0) {
             $this->add_finding(
                 self::FINDING_COURSES,
-                get_string('healthcheck_recompletionnotify_findingcourses', 'enrol_semco', [
+                get_string('healthcheck_recompletiongrades_findingcourses', 'enrol_semco', [
                     'count' => count($courseids),
                     'total' => $this->count_semco_courses(true),
                     'courses' => $this->name_courses($courseids),
                 ]),
                 $courseids
             );
-            $status = $this->escalate($status, healthcheck::NOTICE);
+            $status = $this->escalate($status, healthcheck::WARNING);
         }
 
         // Return the status.
@@ -178,14 +170,18 @@ class recompletionnotify extends healthcheck {
      * @return array[]
      */
     protected function get_finding_definitions(): array {
-        $settingsurl = new \core\url('/admin/settings.php', ['section' => 'local_recompletion']);
         return [
             // The site-wide default only prefills the settings of the courses which get configured from now on, thus
             // changing it is harmless.
-            self::FINDING_SITEDEFAULT => ['autofix' => true, 'risky' => false, 'url' => $settingsurl],
-            // Changing the courses is not entirely harmless: A course which notifies its users has been configured
-            // this way by its teacher, and the users of this course do not get any notification anymore afterwards.
-            self::FINDING_COURSES => ['autofix' => true, 'risky' => true, 'url' => $settingsurl],
+            self::FINDING_SITEDEFAULT => [
+                'autofix' => true,
+                'risky' => false,
+                'url' => new \core\url('/admin/settings.php', ['section' => 'local_recompletion']),
+            ],
+            // Changing the courses is not entirely harmless: A course which keeps the grades has been configured this
+            // way by its teacher, and the next course completion reset deletes the grades of the users afterwards. The
+            // setting is configured per course, thus there is no single page to link to.
+            self::FINDING_COURSES => ['autofix' => true, 'risky' => true, 'url' => null],
         ];
     }
 
@@ -197,23 +193,15 @@ class recompletionnotify extends healthcheck {
      * @return void
      */
     protected function apply_autofix(string $findingid, array $contexts): void {
-        global $CFG;
-
-        // The recompletion constants live in the autoloadable local_recompletion_recompletion_form class, but this
-        // class extends moodleform, thus formslib has to be loaded before the class can be used. The local_recompletion
-        // library takes care of that.
-        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
-        $disabled = \local_recompletion_recompletion_form::RECOMPLETION_NOTIFY_DISABLED;
-
         switch ($findingid) {
-            // Disable the notification in the site-wide default.
+            // Enable the grade deletion in the site-wide default.
             case self::FINDING_SITEDEFAULT:
-                autofix::set_recompletion_site_config('recompletionnotify', $disabled);
+                autofix::set_recompletion_site_config('deletegradedata', '1');
                 break;
 
-            // Disable the notification in the affected courses.
+            // Enable the grade deletion in the affected courses.
             case self::FINDING_COURSES:
-                autofix::set_recompletion_course_config(array_merge(...$contexts), 'recompletionnotify', $disabled);
+                autofix::set_recompletion_course_config(array_merge(...$contexts), 'deletegradedata', '1');
                 break;
         }
     }

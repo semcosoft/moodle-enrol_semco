@@ -62,6 +62,9 @@ use enrol_semco\healthcheck\manager;
  * @covers \enrol_semco\healthcheck\check\recompletioninstalled
  * @covers \enrol_semco\healthcheck\check\recompletionnotify
  * @covers \enrol_semco\healthcheck\check\recompletionondemand
+ * @covers \enrol_semco\healthcheck\check\recompletiongrades
+ * @covers \enrol_semco\healthcheck\check\recompletionarchive
+ * @covers \enrol_semco\healthcheck\check\recompletionrestrictenrol
  * @covers \enrol_semco\healthcheck\check\recompletionresetmycompletion
  * @covers \enrol_semco\healthcheck\check\recompletionmanage
  * @covers \enrol_semco\healthcheck\check\restprotocol
@@ -2758,6 +2761,9 @@ final class healthcheck_test extends \advanced_testcase {
                 \enrol_semco\healthcheck\check\recompletionondemand::class,
                 \enrol_semco\healthcheck\check\recompletionnotify::class,
                 \enrol_semco\healthcheck\check\recompletionactivities::class,
+                \enrol_semco\healthcheck\check\recompletiongrades::class,
+                \enrol_semco\healthcheck\check\recompletionarchive::class,
+                \enrol_semco\healthcheck\check\recompletionrestrictenrol::class,
                 \enrol_semco\healthcheck\check\recompletionresetmycompletion::class,
                 \enrol_semco\healthcheck\check\recompletionmanage::class,
             ] as $classname
@@ -2795,6 +2801,9 @@ final class healthcheck_test extends \advanced_testcase {
                 \enrol_semco\healthcheck\check\recompletionondemand::class,
                 \enrol_semco\healthcheck\check\recompletionnotify::class,
                 \enrol_semco\healthcheck\check\recompletionactivities::class,
+                \enrol_semco\healthcheck\check\recompletiongrades::class,
+                \enrol_semco\healthcheck\check\recompletionarchive::class,
+                \enrol_semco\healthcheck\check\recompletionrestrictenrol::class,
                 \enrol_semco\healthcheck\check\recompletionresetmycompletion::class,
                 \enrol_semco\healthcheck\check\recompletionmanage::class,
             ] as $classname
@@ -2869,7 +2878,7 @@ final class healthcheck_test extends \advanced_testcase {
 
         // A course which is created while the site-wide default is in place inherits it, thus a fresh course with a
         // SEMCO enrolment is prepared right away. This is what the site-wide default is good for.
-        $course = $this->getDataGenerator()->create_course();
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($course);
         $this->assertEquals(healthcheck::OK, $this->get_check($classname)->get_status());
 
@@ -2890,6 +2899,15 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
         $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
 
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
+
         // The automatic fix sets the course to the 'On demand' recompletion type. It is not entirely harmless, as the
         // course has been configured by its teacher.
         $this->assertTrue($check->supports_autofix());
@@ -2903,7 +2921,7 @@ final class healthcheck_test extends \advanced_testcase {
 
         // The automatic fix also handles a course which does not hold the setting at all, and it leaves the courses
         // which do not hold a SEMCO enrolment alone.
-        $othercourse = $this->getDataGenerator()->create_course();
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $DB->delete_records('local_recompletion_config', ['course' => $course->id, 'name' => 'recompletiontype']);
         $DB->delete_records('local_recompletion_config', ['course' => $othercourse->id, 'name' => 'recompletiontype']);
         $check = $this->get_check($classname);
@@ -2956,7 +2974,7 @@ final class healthcheck_test extends \advanced_testcase {
 
         // A course which holds a SEMCO enrolment and which notifies its users on its own is reported as well, even
         // though the site-wide default does not notify anyone.
-        $course = $this->getDataGenerator()->create_course();
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($course);
         $DB->insert_record('local_recompletion_config', (object) [
             'course' => $course->id,
@@ -2971,8 +2989,22 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
         $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
 
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $nocompletioncourse->id,
+            'name' => 'recompletionnotify',
+            'value' => 'completed',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
+
         // A course without a SEMCO enrolment is out of scope.
-        $othercourse = $this->getDataGenerator()->create_course();
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         $DB->insert_record('local_recompletion_config', (object) [
             'course' => $othercourse->id,
             'name' => 'recompletionnotify',
@@ -2984,7 +3016,7 @@ final class healthcheck_test extends \advanced_testcase {
         // A course which holds a SEMCO enrolment and which stores a value of 0 is not reported either: This is what
         // local_recompletion's course settings page writes for a setting which the form did not submit, and
         // local_recompletion treats it as 'disabled' just like the empty value.
-        $zerocourse = $this->getDataGenerator()->create_course();
+        $zerocourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($zerocourse);
         $DB->insert_record('local_recompletion_config', (object) [
             'course' => $zerocourse->id,
@@ -3065,12 +3097,20 @@ final class healthcheck_test extends \advanced_testcase {
 
         // A course with SEMCO enrolments which does not hold any recompletion setting does not reset any activity
         // type, which is less than the site-wide settings ask for.
-        $course = $this->getDataGenerator()->create_course();
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($course);
         $check = $this->get_check($classname);
         $this->assertEquals(healthcheck::NOTICE, $check->get_status());
         $this->assertCount(1, $check->get_findings());
         $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
 
         // As soon as the course resets every activity type as well, everything is fine again.
         foreach ($settingnames as $settingname) {
@@ -3151,7 +3191,7 @@ final class healthcheck_test extends \advanced_testcase {
 
         // A permission override in a course which holds a SEMCO enrolment is reported as well, even though the role
         // definition itself does not grant the capability anymore.
-        $course = $this->getDataGenerator()->create_course();
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($course);
         assign_capability(
             'local/recompletion:resetmycompletion',
@@ -3164,6 +3204,21 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::WARNING, $check->get_status());
         $this->assertCount(1, $check->get_findings());
         $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        assign_capability(
+            'local/recompletion:resetmycompletion',
+            CAP_ALLOW,
+            $enrolmentroleid,
+            \context_course::instance($nocompletioncourse->id)->id,
+            true
+        );
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
 
         // If there is not any enrolment role configured, this check cannot be assessed.
         set_config('role', '', 'enrol_semco');
@@ -3237,7 +3292,7 @@ final class healthcheck_test extends \advanced_testcase {
         // A permission override in a course which holds a SEMCO enrolment is reported as well, even though the role
         // definition itself does not grant the capability. The severity follows the archetype here as well, and such an
         // override is not removed automatically.
-        $course = $this->getDataGenerator()->create_course();
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         enrol_get_plugin('semco')->add_instance($course);
         assign_capability($capability, CAP_ALLOW, $studentroleid, \context_course::instance($course->id)->id, true);
         $check = $this->get_check($classname);
@@ -3250,8 +3305,18 @@ final class healthcheck_test extends \advanced_testcase {
         $this->assertEquals(healthcheck::WARNING, $check->get_status());
         $this->assertCount(2, $check->get_findings());
 
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        assign_capability($capability, CAP_ALLOW, $teacherroleid, \context_course::instance($nocompletioncourse->id)->id, true);
+        $check = $this->get_check($classname);
+        $this->assertCount(2, $check->get_findings());
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[1]);
+
         // A course without SEMCO enrolments is not looked at.
-        $othercourse = $this->getDataGenerator()->create_course();
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
         unassign_capability($capability, $studentroleid, \context_course::instance($course->id)->id);
         unassign_capability($capability, $teacherroleid, \context_course::instance($course->id)->id);
         assign_capability($capability, CAP_ALLOW, $teacherroleid, \context_course::instance($othercourse->id)->id, true);
@@ -3297,6 +3362,438 @@ final class healthcheck_test extends \advanced_testcase {
         $healthchecks = array_values(manager::get_healthchecks(healthcheck::CATEGORY_WEBSERVICE));
         $this->assertEquals(healthcheck::ERROR, $healthchecks[0]->get_status());
         $this->assertEquals('webservicesenabled', $healthchecks[0]->get_id());
+    }
+
+    /**
+     * Test the health check item for the grade deletion of local_recompletion.
+     *
+     * This test needs local_recompletion to be installed. The behaviour without that plugin is covered by
+     * test_recompletion_items_without_local_recompletion().
+     */
+    public function test_recompletiongrades(): void {
+        global $CFG, $DB;
+
+        // Skip this test if local_recompletion is not installed as the item cannot be assessed then.
+        if (enrol_semco_check_local_recompletion() != true) {
+            $this->markTestSkipped('local_recompletion is not installed, the item cannot be assessed.');
+        }
+
+        $classname = \enrol_semco\healthcheck\check\recompletiongrades::class;
+
+        // The course findings only cover courses with completion tracking enabled, thus enable it for the courses below.
+        $CFG->enablecompletion = 1;
+
+        // A stock local_recompletion deletes the grades by default, thus everything is fine.
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertFalse($check->supports_autofix());
+
+        // A site-wide default which keeps the grades is reported.
+        set_config('deletegradedata', 0, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+
+        // The automatic fix enables the site-wide default, which is harmless.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', get_config('local_recompletion', 'deletegradedata'));
+
+        // A course which holds a SEMCO enrolment and which keeps the grades on its own is reported, even though the
+        // site-wide default deletes them.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($course);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $course->id,
+            'name' => 'deletegradedata',
+            'value' => '0',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+
+        // The finding must name the amount of affected courses as well as the courses themselves.
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
+        $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment but which does not hold the setting at all does not delete the grades
+        // either, thus it is reported as well.
+        $unsetcourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($unsetcourse);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('2 of 2', $check->get_findings()[0]);
+        $this->assertStringContainsString($unsetcourse->fullname, $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment and which deletes the grades is fine.
+        $finecourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($finecourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $finecourse->id,
+            'name' => 'deletegradedata',
+            'value' => '1',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('2 of 3', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($finecourse->fullname, $check->get_findings()[0]);
+
+        // A course without a SEMCO enrolment is out of scope.
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $othercourse->id,
+            'name' => 'deletegradedata',
+            'value' => '0',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('2 of 3', $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope as
+        // well, as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('2 of 3', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
+
+        // The automatic fix enables the grade deletion in the courses which hold a SEMCO enrolment, adds the setting
+        // to the course which does not hold it and leaves the other course alone. It is not entirely harmless, as the
+        // courses have been configured by their teachers.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertTrue($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $course->id,
+            'name' => 'deletegradedata',
+        ]));
+        $this->assertSame('1', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $unsetcourse->id,
+            'name' => 'deletegradedata',
+        ]));
+        $this->assertSame('0', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $othercourse->id,
+            'name' => 'deletegradedata',
+        ]));
+    }
+
+    /**
+     * Test the health check item for the data archiving of local_recompletion.
+     *
+     * This test needs local_recompletion to be installed. The behaviour without that plugin is covered by
+     * test_recompletion_items_without_local_recompletion().
+     */
+    public function test_recompletionarchive(): void {
+        global $CFG, $DB;
+
+        // Skip this test if local_recompletion is not installed as the item cannot be assessed then.
+        if (enrol_semco_check_local_recompletion() != true) {
+            $this->markTestSkipped('local_recompletion is not installed, the item cannot be assessed.');
+        }
+
+        require_once($CFG->dirroot . '/local/recompletion/locallib.php');
+
+        $classname = \enrol_semco\healthcheck\check\recompletionarchive::class;
+
+        // Pick an activity type which offers a site-wide archive setting. The quiz is a core module which
+        // local_recompletion supports, thus it is always there.
+        $this->assertNotFalse(get_config('local_recompletion', 'archivequiz'));
+
+        // A stock local_recompletion archives the completion data by default, but it does not force the archiving.
+        // Thus, the switch is reported as a warning right away.
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('Force archive completion data', $check->get_findings()[0]);
+
+        // The automatic fix enables the switch, which is harmless.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', get_config('local_recompletion', 'forcearchivecompletiondata'));
+
+        // A site-wide default which does not archive the completion data is reported.
+        set_config('archivecompletiondata', 0, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('Archive completion data', $check->get_findings()[0]);
+
+        // The automatic fix enables the site-wide default, which is harmless.
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', get_config('local_recompletion', 'archivecompletiondata'));
+
+        // An activity type which does not archive its data is only relevant if it deletes its data. A stock
+        // local_recompletion does not reset the quizzes, thus a disabled archive option is fine.
+        set_config('archivequiz', 0, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+
+        // As soon as the quiz attempts are deleted, the disabled archive option is reported.
+        set_config('quiz', LOCAL_RECOMPLETION_DELETE, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString(get_string('pluginname', 'mod_quiz'), $check->get_findings()[0]);
+
+        // The automatic fix enables the archive option of the activity type, which is harmless.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', get_config('local_recompletion', 'archivequiz'));
+
+        // Disable the switch again to assess the course settings for the completion data.
+        set_config('forcearchivecompletiondata', 0, 'local_recompletion');
+
+        // A course which holds a SEMCO enrolment and which does not archive the completion data on its own is
+        // reported, even though the site-wide default archives it.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($course);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $course->id,
+            'name' => 'archivecompletiondata',
+            'value' => '0',
+        ]);
+
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $nocompletioncourse->id,
+            'name' => 'archivecompletiondata',
+            'value' => '0',
+        ]);
+
+        // A course which holds a SEMCO enrolment, which archives the completion data but which deletes the quiz
+        // attempts without archiving them is reported as well. The missing archive option counts as disabled.
+        $quizcourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($quizcourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $quizcourse->id,
+            'name' => 'archivecompletiondata',
+            'value' => '1',
+        ]);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $quizcourse->id,
+            'name' => 'quiz',
+            'value' => (string) LOCAL_RECOMPLETION_DELETE,
+        ]);
+
+        // A course which holds a SEMCO enrolment and which archives everything is fine.
+        $finecourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($finecourse);
+        foreach (
+            ['archivecompletiondata' => '1', 'quiz' => (string) LOCAL_RECOMPLETION_DELETE, 'archivequiz' => '1'] as $name => $value
+        ) {
+            $DB->insert_record('local_recompletion_config', (object) [
+                'course' => $finecourse->id,
+                'name' => $name,
+                'value' => $value,
+            ]);
+        }
+
+        // A course without a SEMCO enrolment is out of scope.
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $othercourse->id,
+            'name' => 'archivecompletiondata',
+            'value' => '0',
+        ]);
+
+        // The switch is reported along with the courses, and the finding must name the amount of affected courses as
+        // well as the courses themselves.
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(2, $check->get_findings());
+        $this->assertStringContainsString('2 of 3', $check->get_findings()[1]);
+        $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[1]);
+        $this->assertStringContainsString($quizcourse->fullname, $check->get_findings()[1]);
+        $this->assertStringNotContainsString($finecourse->fullname, $check->get_findings()[1]);
+        $this->assertStringNotContainsString($othercourse->fullname, $check->get_findings()[1]);
+
+        // As soon as the switch is enabled, the course setting for the completion data does not matter anymore, but
+        // the archive option of the activity type still does.
+        set_config('forcearchivecompletiondata', 1, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 3', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($course->fullname, $check->get_findings()[0]);
+        $this->assertStringContainsString($quizcourse->fullname, $check->get_findings()[0]);
+
+        // The automatic fix enables the archive option in the affected course only, which is harmless as an archive
+        // copy is not visible to the users of the course.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $quizcourse->id,
+            'name' => 'archivequiz',
+        ]));
+        $this->assertSame('0', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $course->id,
+            'name' => 'archivecompletiondata',
+        ]));
+        $this->assertSame('0', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $othercourse->id,
+            'name' => 'archivecompletiondata',
+        ]));
+
+        // With the switch disabled again, the automatic fix enables the course setting for the completion data in the
+        // course which holds a SEMCO enrolment and leaves the other course alone.
+        set_config('forcearchivecompletiondata', 0, 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertCount(2, $check->get_findings());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('1', get_config('local_recompletion', 'forcearchivecompletiondata'));
+        $this->assertSame('1', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $course->id,
+            'name' => 'archivecompletiondata',
+        ]));
+        $this->assertSame('0', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $othercourse->id,
+            'name' => 'archivecompletiondata',
+        ]));
+    }
+
+    /**
+     * Test the health check item for the enrolment method restriction of local_recompletion.
+     *
+     * This test needs local_recompletion to be installed. The behaviour without that plugin is covered by
+     * test_recompletion_items_without_local_recompletion().
+     */
+    public function test_recompletionrestrictenrol(): void {
+        global $DB;
+
+        // Skip this test if local_recompletion is not installed as the item cannot be assessed then.
+        if (enrol_semco_check_local_recompletion() != true) {
+            $this->markTestSkipped('local_recompletion is not installed, the item cannot be assessed.');
+        }
+
+        $classname = \enrol_semco\healthcheck\check\recompletionrestrictenrol::class;
+
+        // A stock local_recompletion does not restrict the reset to any enrolment method, thus everything is fine.
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertFalse($check->supports_autofix());
+
+        // An empty restriction is fine as well.
+        set_config('restrictenrol', '', 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+
+        // A restriction which includes the SEMCO enrolment method is fine, too.
+        set_config('restrictenrol', 'manual,semco', 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+
+        // A site-wide default which restricts the reset to other enrolment methods is reported.
+        set_config('restrictenrol', 'manual,self', 'local_recompletion');
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+        $this->assertCount(1, $check->get_findings());
+
+        // The automatic fix adds the SEMCO enrolment method and keeps the other ones, which is harmless.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('manual,self,semco', get_config('local_recompletion', 'restrictenrol'));
+
+        // A course which holds a SEMCO enrolment and which restricts the reset to other enrolment methods on its own
+        // is reported, even though the site-wide default includes the SEMCO enrolment method.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($course);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $course->id,
+            'name' => 'restrictenrol',
+            'value' => 'manual,self',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertEquals(healthcheck::WARNING, $check->get_status());
+
+        // The finding must name the amount of affected courses as well as the courses themselves.
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
+        $this->assertStringContainsString($course->fullname . ' (' . $course->shortname . ')', $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment but which does not have completion tracking enabled is out of scope,
+        // as there is no course completion to reset there.
+        $nocompletioncourse = $this->getDataGenerator()->create_course(['enablecompletion' => 0]);
+        enrol_get_plugin('semco')->add_instance($nocompletioncourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $nocompletioncourse->id,
+            'name' => 'restrictenrol',
+            'value' => 'manual,self',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 1', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($nocompletioncourse->fullname, $check->get_findings()[0]);
+
+        // A course which holds a SEMCO enrolment and which includes the SEMCO enrolment method is fine, and so is a
+        // course which does not restrict the reset at all.
+        $finecourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($finecourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $finecourse->id,
+            'name' => 'restrictenrol',
+            'value' => 'semco',
+        ]);
+        $emptycourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($emptycourse);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $emptycourse->id,
+            'name' => 'restrictenrol',
+            'value' => '',
+        ]);
+        $unsetcourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        enrol_get_plugin('semco')->add_instance($unsetcourse);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+        $this->assertStringContainsString('1 of 4', $check->get_findings()[0]);
+        $this->assertStringNotContainsString($finecourse->fullname, $check->get_findings()[0]);
+        $this->assertStringNotContainsString($emptycourse->fullname, $check->get_findings()[0]);
+        $this->assertStringNotContainsString($unsetcourse->fullname, $check->get_findings()[0]);
+
+        // A course without a SEMCO enrolment is out of scope.
+        $othercourse = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $DB->insert_record('local_recompletion_config', (object) [
+            'course' => $othercourse->id,
+            'name' => 'restrictenrol',
+            'value' => 'manual',
+        ]);
+        $check = $this->get_check($classname);
+        $this->assertCount(1, $check->get_findings());
+
+        // The automatic fix adds the SEMCO enrolment method to the affected course, keeps its other enrolment methods
+        // and leaves the other courses alone.
+        $this->assertTrue($check->supports_autofix());
+        $this->assertFalse($check->is_autofix_risky());
+        $check->autofix();
+        $this->assertEquals(healthcheck::OK, $check->get_status());
+        $this->assertSame('manual,self,semco', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $course->id,
+            'name' => 'restrictenrol',
+        ]));
+        $this->assertSame('semco', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $finecourse->id,
+            'name' => 'restrictenrol',
+        ]));
+        $this->assertSame('manual', $DB->get_field('local_recompletion_config', 'value', [
+            'course' => $othercourse->id,
+            'name' => 'restrictenrol',
+        ]));
     }
 
     /**

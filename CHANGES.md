@@ -6,6 +6,8 @@ Changes
 
 ### Unreleased
 
+* 2026-09-30 - Improvement: The health check items of the 'Recompletion plugin' category only assess the courses which have completion tracking enabled in their course settings, as there is no course completion which SEMCO could reset in the other courses.
+* 2026-09-30 - Improvement: Add three additional recommendations for local_recompletion to the README along with matching health check items.
 * 2026-09-30 - Improvement: The health check refers to the SEMCO support ticketing system, if needed.
 * 2026-09-28 - Bugfix: The plugin settings page and the cli/recreate_webservice_token.php script broke if the 'SEMCO webservice' user had more than one webservice token for the SEMCO external service. The settings page now shows the oldest token, as this is the token which has most probably been entered in SEMCO initially and which SEMCO keeps using even if another token is created in Moodle by accident. The 'SEMCO webservice token' health check items assess the oldest token instead of the newest one for the same reason. The CLI script refuses to recreate the token as long as there is more than one token and asks the admin to delete all but one token first.
 * 2026-09-27 - Improvement: Add a recommendation to the README and a 'Course recompletion: Settings access' health check item which verify that no role is allowed to change the course recompletion settings of local_recompletion within a course, as such a role could weaken the site-wide recompletion rules. A teacher role which holds the capability is reported as a warning, any other role as a notice.
