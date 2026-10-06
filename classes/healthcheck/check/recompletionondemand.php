@@ -129,15 +129,18 @@ class recompletionondemand extends healthcheck {
         // The site-wide default only prefills the course settings, it does not change the courses which exist
         // already. Thus, get the courses which hold SEMCO enrolments but which are not set to 'On demand'.
         // The value column is a text column, thus it has to be compared with sql_compare_text().
+        // Courses which do not have completion tracking enabled in their course settings are out of scope, as there is no
+        // course completion which SEMCO could reset there.
         $sql = 'SELECT DISTINCT c.id
                 FROM {enrol} e
                 JOIN {course} c ON c.id = e.courseid
                 LEFT JOIN {local_recompletion_config} rc ON rc.course = e.courseid AND rc.name = :configname
-                WHERE e.enrol = :enrol AND (rc.value IS NULL OR ' .
+                WHERE e.enrol = :enrol AND c.enablecompletion = :enablecompletion AND (rc.value IS NULL OR ' .
                     $DB->sql_compare_text('rc.value') . ' <> ' . $DB->sql_compare_text(':ondemand') . ')';
         $params = [
             'configname' => 'recompletiontype',
             'enrol' => 'semco',
+            'enablecompletion' => 1,
             'ondemand' => $ondemand,
         ];
         $courseids = array_map('intval', $DB->get_fieldset_sql($sql, $params));
@@ -151,7 +154,7 @@ class recompletionondemand extends healthcheck {
                 self::FINDING_COURSES,
                 get_string('healthcheck_recompletionondemand_findingcourses', 'enrol_semco', [
                     'count' => count($courseids),
-                    'total' => $this->count_semco_courses(),
+                    'total' => $this->count_semco_courses(true),
                     'courses' => $this->name_courses($courseids),
                 ]),
                 $courseids
