@@ -147,14 +147,14 @@ class recompletionresetmycompletion extends healthcheck {
             // which SEMCO actually uses and in which the role holds the capability nevertheless, and name them, as the
             // admin has to look into each of them.
         } else {
-            $courseids = $this->get_semco_courses_with_capability(self::CAPABILITY, (int) $role->id);
+            $courseids = $this->get_semco_courses_with_capability(self::CAPABILITY, (int) $role->id, true);
             if (count($courseids) > 0) {
                 $this->add_finding(
                     self::FINDING_OVERRIDE,
                     get_string('healthcheck_recompletionresetmycompletion_findingoverride', 'enrol_semco', [
                         'role' => $rolename,
                         'count' => count($courseids),
-                        'total' => $this->count_semco_courses(),
+                        'total' => $this->count_semco_courses(true),
                         'courses' => $this->name_courses($courseids),
                     ])
                 );

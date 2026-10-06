@@ -605,21 +605,35 @@ abstract class healthcheck {
      * which SEMCO sells but in which nobody is enrolled at the moment does not hold any enrolment instance and is
      * therefore not counted here.
      *
+     * The items of the recompletion category restrict themselves to the courses which have completion tracking enabled
+     * in their course settings, as there is no course completion which SEMCO could reset in the other courses. They
+     * ask for the matching total so that the amount of affected courses is compared with the same set of courses.
+     *
+     * @param bool $completiononly Whether to count only the courses which have completion tracking enabled.
      * @return int The amount of courses which hold SEMCO enrolments.
      */
-    protected function count_semco_courses(): int {
+    protected function count_semco_courses(bool $completiononly = false): int {
         global $DB;
 
+        // The two totals are cached separately.
+        $cachekey = $completiononly ? 'semcocoursecountcompletion' : 'semcocoursecount';
+
         // If the count is not cached yet, fetch it.
-        if (!array_key_exists('semcocoursecount', self::$recordcache)) {
-            self::$recordcache['semcocoursecount'] = (int) $DB->count_records_sql(
-                'SELECT COUNT(DISTINCT e.courseid) FROM {enrol} e WHERE e.enrol = :enrol',
-                ['enrol' => 'semco']
-            );
+        if (!array_key_exists($cachekey, self::$recordcache)) {
+            $sql = 'SELECT COUNT(DISTINCT e.courseid)
+                    FROM {enrol} e
+                    JOIN {course} c ON c.id = e.courseid
+                    WHERE e.enrol = :enrol';
+            $params = ['enrol' => 'semco'];
+            if ($completiononly) {
+                $sql .= ' AND c.enablecompletion = :enablecompletion';
+                $params['enablecompletion'] = 1;
+            }
+            self::$recordcache[$cachekey] = (int) $DB->count_records_sql($sql, $params);
         }
 
         // Return the cached count.
-        return self::$recordcache['semcocoursecount'];
+        return self::$recordcache[$cachekey];
     }
 
     /**
@@ -631,10 +645,16 @@ abstract class healthcheck {
      *
      * @param string $capability The capability to look for.
      * @param int $roleid The id of the role to look for.
+     * @param bool $completiononly Whether to look only into the courses which have completion tracking enabled, see
+     *                             count_semco_courses().
      * @return int[] The ids of the affected courses.
      */
-    protected function get_semco_courses_with_capability(string $capability, int $roleid): array {
-        $roles = $this->get_roles_with_capability_in_semco_courses($capability);
+    protected function get_semco_courses_with_capability(
+        string $capability,
+        int $roleid,
+        bool $completiononly = false
+    ): array {
+        $roles = $this->get_roles_with_capability_in_semco_courses($capability, $completiononly);
         return array_key_exists($roleid, $roles) ? $roles[$roleid] : [];
     }
 
@@ -651,21 +671,28 @@ abstract class healthcheck {
      * runtime, including the special role of a 'Prohibit' permission.
      *
      * @param string $capability The capability to look for.
+     * @param bool $completiononly Whether to look only into the courses which have completion tracking enabled, see
+     *                             count_semco_courses().
      * @return int[][] The ids of the affected courses, keyed by the id of the role which holds the capability there.
      */
-    protected function get_roles_with_capability_in_semco_courses(string $capability): array {
+    protected function get_roles_with_capability_in_semco_courses(string $capability, bool $completiononly = false): array {
         global $DB;
 
         // Get the course contexts of the courses which hold SEMCO enrolments. The context path is all that
         // get_roles_with_cap_in_context() needs, thus there is no need to instantiate the context objects.
         $sql = 'SELECT DISTINCT ctx.id, ctx.instanceid, ctx.path
                 FROM {enrol} e
+                JOIN {course} c ON c.id = e.courseid
                 JOIN {context} ctx ON ctx.instanceid = e.courseid AND ctx.contextlevel = :contextlevel
                 WHERE e.enrol = :enrol';
         $params = [
             'contextlevel' => CONTEXT_COURSE,
             'enrol' => 'semco',
         ];
+        if ($completiononly) {
+            $sql .= ' AND c.enablecompletion = :enablecompletion';
+            $params['enablecompletion'] = 1;
+        }
         $contexts = $DB->get_records_sql($sql, $params);
 
         // Pick the roles which hold the capability in each course in the end.

@@ -157,7 +157,7 @@ class recompletionmanage extends healthcheck {
         // The role definition is not the only place which can grant the capability. Get the roles which hold the
         // capability in the courses which SEMCO actually uses nevertheless, and name the courses, as the admin has to
         // look into each of them. The roles whose definition grants the capability have been reported already.
-        $overrides = $this->get_roles_with_capability_in_semco_courses(self::CAPABILITY);
+        $overrides = $this->get_roles_with_capability_in_semco_courses(self::CAPABILITY, true);
         foreach ($overrides as $roleid => $courseids) {
             // Skip the roles which have been reported already or which have vanished in the meantime.
             if (in_array($roleid, $definitionroleids) || !isset($roles[$roleid])) {
@@ -168,7 +168,7 @@ class recompletionmanage extends healthcheck {
                 get_string('healthcheck_recompletionmanage_findingoverride', 'enrol_semco', [
                     'role' => $rolenames[$roleid]->localname,
                     'count' => count($courseids),
-                    'total' => $this->count_semco_courses(),
+                    'total' => $this->count_semco_courses(true),
                     'courses' => $this->name_courses($courseids),
                 ])
             );
