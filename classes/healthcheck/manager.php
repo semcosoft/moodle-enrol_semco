@@ -530,6 +530,9 @@ class manager {
             check\recompletionondemand::class,
             check\recompletionnotify::class,
             check\recompletionactivities::class,
+            check\recompletiongrades::class,
+            check\recompletionarchive::class,
+            check\recompletionrestrictenrol::class,
             check\recompletionresetmycompletion::class,
             check\recompletionmanage::class,
         ];
