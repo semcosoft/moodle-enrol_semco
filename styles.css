@@ -53,7 +53,7 @@
 .enrol_semco-filters-body {
     max-height: 30rem;
     overflow-y: auto;
-    border-bottom: 1px solid var(--bs-dropdown-border-color, #dee2e6);
+    border-bottom: 1px solid #dee2e6;
 }
 
 /*
@@ -63,7 +63,7 @@
 .enrol_semco-filters-body .mform > .fitem:not([data-groupname="buttonar"]) {
     margin: 0 0 1rem 0;
     padding: 0 0 1rem 0;
-    border-bottom: 1px solid var(--bs-dropdown-border-color, #dee2e6);
+    border-bottom: 1px solid #dee2e6;
 }
 
 /* The last filter needs no line of its own, the scrolling area draws one right below it. */
@@ -73,10 +73,11 @@
 
 /*
  * Label and field are stacked instead of sitting in two grid columns, which would be far too narrow here. This needs the
- * width property as the columns carry Bootstrap's own width.
+ * flex property as the Bootstrap 4 columns are sized by their flex basis and not by their width.
  */
 .enrol_semco-filters-body .mform .fitem > .col-md-3,
 .enrol_semco-filters-body .mform .fitem > .col-md-9 {
+    flex: 0 0 100%;
     width: 100%;
     max-width: 100%;
     padding-left: 0;

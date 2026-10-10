@@ -136,7 +136,7 @@ class healthchecklist_table extends \core_table\sql_table {
                 'enrol_semco'
             ),
             'attributes' => [
-                'class' => 'action-details py-0 ps-0 ms-0 me-0',
+                'class' => 'action-details py-0 pl-0 ml-0 mr-0',
                 'data-action' => 'healthcheck-details',
                 'data-title' => $data->title,
                 'data-summary' => $data->summary,
@@ -167,7 +167,7 @@ class healthchecklist_table extends \core_table\sql_table {
                     'enrol_semco'
                 ),
                 'attributes' => [
-                    'class' => 'action-autofix py-0 ms-0 me-0',
+                    'class' => 'action-autofix py-0 ml-0 mr-0',
                     'title' => get_string('healthcheckautofix', 'enrol_semco'),
                     'aria-label' => get_string('healthcheckautofix', 'enrol_semco'),
                     'data-modal' => 'confirmation',
@@ -188,7 +188,7 @@ class healthchecklist_table extends \core_table\sql_table {
                     'enrol_semco'
                 ),
                 'attributes' => [
-                    'class' => 'action-support py-0 ms-0 me-0',
+                    'class' => 'action-support py-0 ml-0 mr-0',
                     'title' => get_string('healthchecksupport', 'enrol_semco'),
                     'aria-label' => get_string('healthchecksupport', 'enrol_semco'),
                     'data-modal' => 'alert',
@@ -204,7 +204,7 @@ class healthchecklist_table extends \core_table\sql_table {
             $actions[] = [
                 'url' => $data->actionurl,
                 'icon' => new \core\output\pix_icon('i/settings', get_string('healthcheckopensetting', 'enrol_semco')),
-                'attributes' => ['class' => 'action-edit py-0 ms-0 me-0'],
+                'attributes' => ['class' => 'action-edit py-0 ml-0 mr-0'],
             ];
         }
 
@@ -218,7 +218,7 @@ class healthchecklist_table extends \core_table\sql_table {
             ]),
             'icon' => new \core\output\pix_icon($data->muted ? 'muted' : 'unmuted', $mutelabel, 'enrol_semco'),
             'attributes' => [
-                'class' => ($data->muted ? 'action-unmute' : 'action-mute') . ' py-0 pe-0 ms-0 me-0',
+                'class' => ($data->muted ? 'action-unmute' : 'action-mute') . ' py-0 pr-0 ml-0 mr-0',
                 'title' => $mutelabel,
                 'aria-label' => $mutelabel,
             ],

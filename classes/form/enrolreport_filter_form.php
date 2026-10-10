@@ -76,7 +76,7 @@ class enrolreport_filter_form extends \moodleform {
             get_string('filtersreset', 'enrol_semco'),
             null,
             null,
-            ['customclassoverride' => 'btn-link ms-1']
+            ['customclassoverride' => 'btn-link ml-1']
         );
         // The group carries a label for screen readers, which the stylesheet hides visually.
         $mform->addGroup($buttons, 'buttonar', get_string('formactions', 'core_form'), '', false)
