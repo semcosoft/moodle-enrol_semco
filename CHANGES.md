@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Upgrade: Adopt changes from MDL-82650 and replace the deprecated user_update_user(), user_delete_user() and user_can_view_profile() functions with their \core\user counterparts.
 * 2026-10-05 - Prepare compatibility for Moodle 5.3.
 * 2026-10-10 - Improvement: The notification which the SEMCO enrolment report shows if it is empty does not carry a close button anymore, as the button stuck out of the opened filter menu.
 * 2026-10-06 - Improvement: The 'Course recompletion: Activity reset' health check item offers an automatic fix now.

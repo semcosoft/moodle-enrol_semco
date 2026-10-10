@@ -29,9 +29,6 @@ global $CFG;
 // Require plugin library.
 require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
-// Require user library.
-require_once($CFG->dirroot . '/user/lib.php');
-
 // Require webservice library.
 require_once($CFG->dirroot . '/webservice/lib.php');
 
@@ -199,7 +196,7 @@ function xmldb_enrol_semco_install() {
         $semcouser->firstname = get_string('installer_userfirstname', 'enrol_semco');
         $semcouser->lastname = get_string('installer_userlastname', 'enrol_semco');
         $semcouser->email = ENROL_SEMCO_ROLEANDUSERNAME . '@' . get_host_from_url($CFG->wwwroot);
-        user_update_user($semcouser, false);
+        \core\user::update_user($semcouser, false);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
         $notification = new \core\output\notification(
