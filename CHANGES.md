@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-05 - Prepare compatibility for Moodle 5.3.
 * 2026-10-18 - Dependency update: The plugin requires local_recompletion with at least version 2026081400 now, as this is the first version in which every supported activity type offers the 'Delete' reset strategy which the automatic fix of the 'Course recompletion: Activity reset' health check item applies. An older version is treated as if local_recompletion was not installed, an upgrade step informs the admin about that.
 * 2026-10-10 - Improvement: The notification which the SEMCO enrolment report shows if it is empty does not carry a close button anymore, as the button stuck out of the opened filter menu.
 * 2026-10-06 - Improvement: The 'Course recompletion: Activity reset' health check item offers an automatic fix now.
