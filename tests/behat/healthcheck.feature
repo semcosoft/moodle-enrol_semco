@@ -224,6 +224,7 @@ Feature: SEMCO health check
     Then I should see "View health check"
     And I should not see "Some checks of the SEMCO health check need your attention."
 
+  @javascript
   Scenario: The health check is reported as fine to the Moodle system status report if no check needs attention
     # The health check covers the recommended global Moodle settings as well, and a stock Moodle does not follow all of
     # them. Thus, these checks have to be muted first, just as an admin would do who has decided against them.
@@ -240,6 +241,7 @@ Feature: SEMCO health check
     And I follow "SEMCO health check"
     And I should see "Webservice infrastructure"
 
+  @javascript
   Scenario: A broken aspect of the plugin installation is reported as error to the Moodle system status report
     Given all SEMCO health checks which need attention are muted
     And the following config values are set as admin:
@@ -254,6 +256,7 @@ Feature: SEMCO health check
     When I click on "More info" "link" in the "SEMCO health check" "table_row"
     Then I should see "Webservice subsystem"
 
+  @javascript
   Scenario: A recommendation which is not followed is reported as warning to the Moodle system status report until it is muted
     # The Moodle messaging system is enabled on a stock Moodle, thus this check is muted along with the others as a start
     # and has to be unmuted explicitly here.
@@ -272,6 +275,7 @@ Feature: SEMCO health check
       | Check              | Status |
       | SEMCO health check | OK     |
 
+  @javascript
   Scenario: A recommendation which only deserves a notice is reported as information to the Moodle system status report
     # A notice neither breaks nor endangers the SEMCO integration, thus it does not deserve a warning on the system status
     # report. Unique email addresses are enforced by a stock Moodle, therefore this setting has to be changed explicitly.
