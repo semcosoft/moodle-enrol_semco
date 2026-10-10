@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Upgrade: Adopt changes from MDL-79127 in the Behat tests: The Moodle system status report streams the results of its checks into the page with JavaScript now.
 * 2026-10-10 - Upgrade: Adopt changes from MDL-82650 and replace the deprecated user_update_user(), user_delete_user() and user_can_view_profile() functions with their \core\user counterparts.
 * 2026-10-05 - Prepare compatibility for Moodle 5.3.
 
