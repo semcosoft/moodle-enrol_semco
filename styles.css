@@ -177,3 +177,28 @@
 #page-enrol-semco-healthcheck table.flexible[id^="healthchecks-"] .c3 {
     width: 8rem;
 }
+
+/*
+ * The action icons of the health check table.
+ *
+ * Moodle core's action_icon() adds the mx-1 and p-1 utility classes to every icon link. The icon links of this table
+ * carry the ms-0, me-0, py-0 and ps-0 / pe-0 utility classes to neutralise them, which works with Bootstrap 5 as its
+ * utility classes are generated in an order where the zero classes come after mx-1 and p-1. Bootstrap 4 generates them
+ * in the opposite order, so mx-1 and p-1 win there and the icons drift apart. The spacing is therefore reset here
+ * explicitly for Moodle 4.5. The !important beats the utility classes which carry !important themselves.
+ */
+#page-enrol-semco-healthcheck .healthcheck-actions .btn {
+    margin-left: 0 !important; /* stylelint-disable-line declaration-no-important */
+    margin-right: 0 !important; /* stylelint-disable-line declaration-no-important */
+    padding-top: 0 !important; /* stylelint-disable-line declaration-no-important */
+    padding-bottom: 0 !important; /* stylelint-disable-line declaration-no-important */
+}
+
+#page-enrol-semco-healthcheck .healthcheck-actions .action-details {
+    padding-left: 0 !important; /* stylelint-disable-line declaration-no-important */
+}
+
+#page-enrol-semco-healthcheck .healthcheck-actions .action-mute,
+#page-enrol-semco-healthcheck .healthcheck-actions .action-unmute {
+    padding-right: 0 !important; /* stylelint-disable-line declaration-no-important */
+}
