@@ -36,10 +36,6 @@ require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 // Require table library.
 require_once($CFG->dirroot . '/lib/tablelib.php');
 
-// Require user library.
-// It holds user_can_view_profile() which the actions menu needs to decide which profile pages it may link to.
-require_once($CFG->dirroot . '/user/lib.php');
-
 /**
  * Class enrollist_table
  *
@@ -671,7 +667,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         $menu->set_kebab_trigger(get_string('actions'));
 
         // Add the item which leads to the user's site wide profile.
-        if (user_can_view_profile($user)) {
+        if (\core\user::can_view_profile($user)) {
             $menu->add(new \core\output\action_menu\link_secondary(
                 new \core\url('/user/profile.php', ['id' => $row->moodleuserid]),
                 new \core\output\pix_icon('viewuserprofile', '', 'enrol_semco'),
@@ -680,7 +676,7 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         }
 
         // Add the item which leads to the user's profile within the enrolled course.
-        if (user_can_view_profile($user, $course)) {
+        if (\core\user::can_view_profile($user, $course)) {
             $menu->add(new \core\output\action_menu\link_secondary(
                 new \core\url('/user/view.php', ['id' => $row->moodleuserid, 'course' => $row->courseid]),
                 new \core\output\pix_icon('viewcourseprofile', '', 'enrol_semco'),

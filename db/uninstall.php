@@ -29,9 +29,6 @@ global $CFG;
 // Require plugin library.
 require_once($CFG->dirroot . '/enrol/semco/locallib.php');
 
-// Require user library.
-require_once($CFG->dirroot . '/user/lib.php');
-
 // Require user profile field library.
 require_once($CFG->dirroot . '/user/profile/definelib.php');
 
@@ -60,7 +57,7 @@ function xmldb_enrol_semco_uninstall() {
     $userrecord = $DB->get_record('user', ['username' => ENROL_SEMCO_ROLEANDUSERNAME]);
     if ($userrecord != false) {
         // Remove it.
-        user_delete_user($userrecord);
+        \core\user::delete_user($userrecord);
 
         // And show a notification about that fact (this also looks fine in the CLI installer).
         $notification = new \core\output\notification(

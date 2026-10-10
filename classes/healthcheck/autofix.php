@@ -185,11 +185,6 @@ class autofix {
      * @return \stdClass The user record.
      */
     public static function create_semco_user(): \stdClass {
-        global $CFG;
-
-        // Require the user library.
-        require_once($CFG->dirroot . '/user/lib.php');
-
         // Create the user and add its names and its email address.
         // The random password is nothing but a formal argument which Moodle discards for this authentication method,
         // see the security note in db/install.php.
@@ -197,7 +192,7 @@ class autofix {
         $user->firstname = get_string('installer_userfirstname', 'enrol_semco');
         $user->lastname = get_string('installer_userlastname', 'enrol_semco');
         $user->email = self::get_semco_user_email();
-        user_update_user($user, false);
+        \core\user::update_user($user, false);
 
         return $user;
     }
@@ -650,13 +645,8 @@ class autofix {
      * @return void
      */
     public static function update_semco_user(int $userid, array $fields): void {
-        global $CFG;
-
-        // Require the user library.
-        require_once($CFG->dirroot . '/user/lib.php');
-
         // Update the user.
-        user_update_user((object) (['id' => $userid] + $fields), false);
+        \core\user::update_user((object) (['id' => $userid] + $fields), false);
     }
 
     /**

@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Upgrade: Adopt changes from MDL-82650 and replace the deprecated user_update_user(), user_delete_user() and user_can_view_profile() functions with their \core\user counterparts.
 * 2026-10-05 - Prepare compatibility for Moodle 5.3.
 
 ### v5.2-r2
