@@ -235,9 +235,11 @@ Feature: SEMCO health check
       | SEMCO health check | OK     |
     And I should see "All aspects of the SEMCO setup are in the desired state." in the "SEMCO health check" "table_row"
     # The details of the check lead to the health check page.
+    # The detail page lists the check name twice, as the plain check link and as the action link, so the action column
+    # is targeted explicitly.
     When I click on "More info" "link" in the "SEMCO health check" "table_row"
     Then I should see "Review the affected aspects on the SEMCO health check page."
-    And I follow "SEMCO health check"
+    And I click on "SEMCO health check" "link" in the "#statusreporttable td.action" "css_element"
     And I should see "Webservice infrastructure"
 
   Scenario: A broken aspect of the plugin installation is reported as error to the Moodle system status report
