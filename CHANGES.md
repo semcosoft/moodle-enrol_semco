@@ -4,6 +4,10 @@ moodle-enrol_semco
 Changes
 -------
 
+### Unreleased
+
+* 2026-10-05 - Prepare compatibility for Moodle 5.3.
+
 ### v5.2-r2
 
 * 2026-10-25 - Internal improvement: Remove the legacy enrol_semco_before_standard_top_of_body_html() callback from lib.php, as it was only used up to Moodle 4.3 and the plugin uses the before_standard_top_of_body_html_generation hook instead.
