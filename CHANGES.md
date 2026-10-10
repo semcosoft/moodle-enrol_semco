@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Upgrade: Adopt changes from MDL-82650 and replace the deprecated user_update_user(), user_delete_user() and user_can_view_profile() functions with their \core\user counterparts.
 * 2026-10-05 - Prepare compatibility for Moodle 5.3.
 * 2026-10-25 - Internal improvement: Remove the legacy enrol_semco_before_standard_top_of_body_html() callback from lib.php, as it was only used up to Moodle 4.3 and the plugin uses the before_standard_top_of_body_html_generation hook instead.
 * 2026-10-18 - Dependency update: The plugin requires local_recompletion with at least version 2026081400 now, as this is the first version in which every supported activity type offers the 'Delete' reset strategy which the automatic fix of the 'Course recompletion: Activity reset' health check item applies. An older version is treated as if local_recompletion was not installed, an upgrade step informs the admin about that.
