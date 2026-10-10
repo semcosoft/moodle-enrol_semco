@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Upgrade: Adopt changes from MDL-79127 in the Behat tests: The Moodle system status report streams the results of its checks into the page with JavaScript now and its detail page only shows the details of a check which does not pass.
 * 2026-10-10 - Upgrade: Adopt changes from MDL-82650 and replace the deprecated user_update_user(), user_delete_user() and user_can_view_profile() functions with their \core\user counterparts.
 * 2026-10-05 - Prepare compatibility for Moodle 5.3.
 * 2026-10-10 - Improvement: The notification which the SEMCO enrolment report shows if it is empty does not carry a close button anymore, as the button stuck out of the opened filter menu.
