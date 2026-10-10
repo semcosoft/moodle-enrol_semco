@@ -152,7 +152,7 @@ abstract class profilefield extends healthcheck {
             'name' => $this->get_name(),
             'shortname' => $this->get_shortname(),
             'unique' => $this->is_expected_unique() ?
-                get_string('healthcheck_profilefield_description_unique', 'enrol_semco') : '',
+                ' ' . get_string('healthcheck_profilefield_description_unique', 'enrol_semco') : '',
         ]);
     }
 
