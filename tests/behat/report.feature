@@ -75,7 +75,7 @@ Feature: SEMCO enrolment report
     # as its kebab menu has its own scenarios below. The enrolment start / end columns show either the enrolment date or
     # the "Unrestricted" label, depending on whether the enrolment has a start / end date.
     And the following should exist in the "enrolsemco_enrolreport" table:
-      | SEMCO User ID | Moodle Username | First name / Last name | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status |
+      | SEMCO User ID | Moodle Username | First name             | Email address        | Moodle User status | Course name | SEMCO booking ID | Enrolment start | Enrolment end | Enrolment status |
       | SEMCO-4711    | student1        | Alice Apple            | student1@example.com | Active             | Course 1    | BOOK-0001        | <startshown>    | <endshown>    | <enrolstatus>    |
 
     # The scenario is run for every permutation of a set / unset enrolment start and end date, once for an active and once for
@@ -162,19 +162,19 @@ Feature: SEMCO enrolment report
     # The report does not show the first name and the last name in two separate columns, it composes them into a single
     # full name column, just as it is done on /admin/user.php.
     Then the following should exist in the "enrolsemco_enrolreport" table:
-      | Moodle Username | First name / Last name | SEMCO booking ID |
+      | Moodle Username | First name             | SEMCO booking ID |
       | student1        | Alice Apple            | BOOK-0001        |
       | student2        | Bert Beer              | BOOK-0002        |
       | student3        | Zoe Ant                | BOOK-0003        |
     # Even though the two names share a single column, the column header still offers a dedicated sort link for each of
     # them. Out of the box, the report is sorted by the last name, which the plugin settings can change.
-    And "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
-    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "First name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
     And "Zoe Ant" "text" should appear before "Alice Apple" "text"
     And "Alice Apple" "text" should appear before "Bert Beer" "text"
     # The first name link really sorts by the first name and not by the last name, which the three users can be told
     # apart by as their first names and last names are in a different alphabetical order.
-    When I click on "First name" "link_exact" in the "enrolsemco_enrolreport" "table"
+    When I click on "First name" "link" in the "enrolsemco_enrolreport" "table"
     Then "Alice Apple" "text" should appear before "Bert Beer" "text"
     And "Bert Beer" "text" should appear before "Zoe Ant" "text"
 
@@ -393,8 +393,8 @@ Feature: SEMCO enrolment report
     When I am on the "enrol_semco > report" page logged in as "manager"
     # The full name column stays the first column of the report, no matter which sorting column is configured. Its header
     # is checked by its two sort links, as the header text itself carries the sort direction icon between the two names.
-    Then "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
-    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    Then "First name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
     # The configured column follows directly after it.
     And I should see "<secondheader>" in the "#enrolsemco_enrolreport thead th:nth-child(2)" "css_element"
     # And the report is sorted by the configured column, which is verified with the booking IDs of the three enrolments.
@@ -439,8 +439,8 @@ Feature: SEMCO enrolment report
     And I should see "Moodle User ID"
     And I should see "SEMCO User ID"
     And I should see "Moodle Username"
-    And "First name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
-    And "Last name" "link_exact" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "First name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
+    And "Last name" "link" should exist in the "#enrolsemco_enrolreport thead th:first-child" "css_element"
     And I should see "Email address"
     And I should see "SEMCO booking ID"
     And "Actions" "link" should exist in the "student1" "table_row"
