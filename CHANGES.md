@@ -6,6 +6,7 @@ Changes
 
 ### Unreleased
 
+* 2026-10-10 - Improvement: The notification which the SEMCO enrolment report shows if it is empty does not carry a close button anymore, as the button stuck out of the opened filter menu.
 * 2026-10-06 - Improvement: The 'Course recompletion: Activity reset' health check item offers an automatic fix now.
 * 2026-10-06 - Improvement: The 'Course recompletion: Activity reset' health check item and the matching README recommendation no longer claim that a course completion reset does not delete _anything_ if no activity type is reset.
 * 2026-09-30 - Improvement: The health check items of the 'Recompletion plugin' category only assess the courses which have completion tracking enabled in their course settings, as there is no course completion which SEMCO could reset in the other courses.

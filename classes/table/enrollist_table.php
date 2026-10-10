@@ -1119,7 +1119,13 @@ class enrollist_table extends \core_table\sql_table implements \core_table\dynam
         } else {
             $emptymessage = get_string('emptytable', 'enrol_semco');
         }
-        echo $OUTPUT->notification($emptymessage, 'info');
+        // Render the notification without a close button. The report header lifts the filter menu into its own stacking
+        // context, while Bootstrap gives the close button of a dismissible alert a z-index of its own, so the button would
+        // stick out of the opened filter menu which overlaps the notification. Apart from that, there is nothing to dismiss
+        // here as the notification just describes the current state of the report.
+        $notification = new \core\output\notification($emptymessage, \core\output\notification::NOTIFY_INFO);
+        $notification->set_show_closebutton(false);
+        echo $OUTPUT->render($notification);
 
         // Render the dynamic table footer.
         echo $this->get_dynamic_table_html_end();
