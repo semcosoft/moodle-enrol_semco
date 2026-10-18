@@ -282,7 +282,7 @@ function enrol_semco_check_local_recompletion($allowtestoverrides = false) {
             $pluginversion = core_plugin_manager::instance()->get_plugin_info('local_recompletion')->versiondb;
 
             // If the version is high enough.
-            if ($pluginversion >= 2024071103) {
+            if ($pluginversion >= 2026081400) {
                 // Remember the check result.
                 $localrecompletioninstalled = true;
 
