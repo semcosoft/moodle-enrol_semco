@@ -37,8 +37,8 @@ $string['settings_connectioninfoheading'] = 'Connection information';
 $string['settings_coursecompletionheading'] = 'Course completion';
 $string['settings_coursecompletionlrcintro'] = '<p>The SEMCO enrolment plugin is able to reset a user\'s course completion if he gets enrolled into a particular course by SEMCO once more.<br />
 To realize this course completion reset and to avoid to re-invent the wheel, this plugin has a soft dependency to <a href="https://github.com/danmarsden/moodle-local_recompletion">local_recompletion</a> by Dan Marsden.</p>';
-$string['settings_coursecompletionlrcfound'] = '<p>The plugin local_recompletion is installed with at least version 2024071103. You are able to use subsequent user enrolments into the same course and to reset course completion.</p>';
-$string['settings_coursecompletionlrcnotfound'] = '<p>Please install local_recompletion with at least version 2024071103 alongside this plugin if you plan to use subsequent user enrolments into the same course and need to reset course completion.<br />
+$string['settings_coursecompletionlrcfound'] = '<p>The plugin local_recompletion is installed with at least version 2026081400. You are able to use subsequent user enrolments into the same course and to reset course completion.</p>';
+$string['settings_coursecompletionlrcnotfound'] = '<p>Please install local_recompletion with at least version 2026081400 alongside this plugin if you plan to use subsequent user enrolments into the same course and need to reset course completion.<br />
 If you do not need plan to reset course completion, you do not need to install local_recompletion.</p>';
 $string['settings_coursecompletionnote'] = '<p>Please note: SEMCO just triggers the on-demand course recompletion which is provided by the <a href="{$a}">course recompletion plugin</a>. It\'s still up to the individual teachers to configure course recompletion in their courses according to the individual needs and to set the course\'s recompletion type to \'On demand\'.</p>';
 $string['settings_enrolmentheading'] = 'Enrolment process';
@@ -492,6 +492,7 @@ $string['updater_2023092610_fixprofilefield4fail'] = 'The installer has tried to
 $string['updater_2023100902_addcapability'] = 'The capability \'enrol/semco:resetcoursecompletion\' was added to the role \'SEMCO webservice\' during the plugin update.';
 $string['updater_2025100601_addcapability'] = 'The capability \'enrol/semco:checkuserexistence\' was added to the role \'SEMCO webservice\' during the plugin update.';
 $string['updater_2026042002_removeforceunique'] = 'The profile field \'{$a}\' was reconfigured to not force unique values anymore during the plugin update. Several users may legitimately share the same value in this field.';
+$string['updater_2026042003_localrecompletionminversion'] = 'The SEMCO enrolment plugin now requires the companion plugin local_recompletion with at least version {$a->required}, but version {$a->installed} is installed. Until you upgrade local_recompletion, the SEMCO enrolment plugin treats it as if it was not installed: SEMCO cannot reset course completions anymore and an enrolment fails as soon as SEMCO requests a course completion reset along with it. Please upgrade local_recompletion as soon as possible.';
 
 // Capabilities.
 $string['semco:checkuserexistence'] = 'Check the existence of a Moodle user by a given field';
