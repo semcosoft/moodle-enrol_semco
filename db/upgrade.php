@@ -381,5 +381,30 @@ function xmldb_enrol_semco_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025100604, 'enrol', 'semco');
     }
 
+    if ($oldversion < 2025100605) {
+        // Up to now, the plugin accepted local_recompletion from version 2024071103 on. From now on, it requires
+        // version 2026081400, as this is the first version in which every supported activity type offers the 'Delete'
+        // reset strategy. An older version is treated as if local_recompletion was not installed at all, thus SEMCO
+        // cannot reset course completions anymore until local_recompletion is upgraded. The admin has to be told so.
+        // We look at the version on disk and not at the version in the database, as local_recompletion is upgraded
+        // after this plugin within the same upgrade run if its code has been updated together with this plugin.
+        $pluginfo = core_plugin_manager::instance()->get_plugin_info('local_recompletion');
+        if ($pluginfo !== null && $pluginfo->versiondisk < 2026081400) {
+            // Show a notification about that fact (this also looks fine in the CLI installer).
+            $notification = new \core\output\notification(
+                get_string('updater_2026042003_localrecompletionminversion', 'enrol_semco', [
+                    'installed' => $pluginfo->versiondisk,
+                    'required' => 2026081400,
+                ]),
+                \core\output\notification::NOTIFY_WARNING
+            );
+            $notification->set_show_closebutton(false);
+            echo $OUTPUT->render($notification);
+        }
+
+        // Enrol_semco savepoint reached.
+        upgrade_plugin_savepoint(true, 2025100605, 'enrol', 'semco');
+    }
+
     return true;
 }
