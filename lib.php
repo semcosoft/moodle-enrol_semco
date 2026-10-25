@@ -199,19 +199,6 @@ class enrol_semco_plugin extends enrol_plugin {
 }
 
 /**
- * Callback to add head elements (for releases up to Moodle 4.3).
- */
-function enrol_semco_before_standard_top_of_body_html() {
-    global $CFG;
-
-    // Require local library.
-    require_once($CFG->dirroot . '/enrol/semco/locallib.php');
-
-    // Call and return callback implementation.
-    return enrol_semco_callbackimpl_before_standard_top_of_body_html();
-}
-
-/**
  * Callback to map the plugin's icons to FontAwesome icons.
  *
  * @return array The icon map.

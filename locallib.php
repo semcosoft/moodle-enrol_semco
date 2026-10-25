@@ -304,9 +304,8 @@ function enrol_semco_check_local_recompletion($allowtestoverrides = false) {
 
 /**
  * Callback to modify the page navigation.
- * This function is implemented here and used from two locations:
- * -> function enrol_semco_before_standard_top_of_body_html in lib.php (for releases up to Moodle 4.3)
- * -> class enrol_semco\local\hook\output\before_standard_top_of_body_html_generation (for releases from Moodle 4.4 on).
+ * This function is implemented here and used from the
+ * class enrol_semco\local\hook\output\before_standard_top_of_body_html_generation.
  *
  * We use this callback as the enrol plugin type, unfortunately, does not include settings.php for non-admins.
  * So we have to use a nasty workaround to add the SEMCO enrolment report and the SEMCO health check link to the site
